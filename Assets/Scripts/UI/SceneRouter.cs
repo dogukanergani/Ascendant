@@ -1,13 +1,13 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Scene names used by the menus. Level scenes are expected to be named Level_1, Level_2, ...
+// Scene names used by the menus. Level scenes are expected to be named Level_01, Level_02, ...
 public static class SceneRouter
 {
     public const string MainMenu = "MainMenu";
     public const string LevelSelect = "LevelSelect";
 
-    public static string LevelSceneName(int level) => $"Level_{level + 1}";
+    public static string LevelSceneName(int level) => $"Level_{level + 1:00}";
 
     public static void LoadMenu() => SceneManager.LoadScene(MainMenu);
 

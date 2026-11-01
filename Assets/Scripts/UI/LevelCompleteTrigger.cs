@@ -14,6 +14,9 @@ public sealed class LevelCompleteTrigger : MonoBehaviour
     int collected;
     bool done;
 
+    // Raised once after the score screen is shown, with the star count of the result.
+    public event System.Action<int> Completed;
+
     public void Collect() => collected++;
 
     void Reset()
@@ -46,6 +49,8 @@ public sealed class LevelCompleteTrigger : MonoBehaviour
 
         done = true;
         timer?.Stop();
-        scoreScreen.Show(levelIndex, timer != null ? timer.Elapsed : 0f, collected, totalCollectibles, parTime);
+        float time = timer != null ? timer.Elapsed : 0f;
+        scoreScreen.Show(levelIndex, time, collected, totalCollectibles, parTime);
+        Completed?.Invoke(ScoreScreen.CalculateStars(time, parTime, collected, totalCollectibles));
     }
 }
