@@ -57,6 +57,7 @@ public sealed class RoomCameraBounds : MonoBehaviour
 
         Vector2 clamped = new Vector2(Clamp(focus.x, bounds.xMin, bounds.xMax, left, right), Clamp(focus.y, bounds.yMin, bounds.yMax, down, up));
         transform.position += (Vector3)((clamped - focus) * weight);
+        CameraFollow.SnapToPixelGrid(cam);
     }
 
     // Keeps [value - before, value + after] inside [min, max]; centres the view when it is larger than the room.

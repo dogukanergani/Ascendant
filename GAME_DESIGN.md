@@ -11,11 +11,12 @@ Unity 6 (6000.0.56f1), 2D pixel-art, **top-down aksiyon macera**. Level level il
 5. Güçlenince eski level'lardaki kilitli yollar açılır, yeni level zorlaşır.
 
 ## Kamera ve hareket
-- Eğik (2.5D, Octopath tarzı) kamera: dünya hâlâ XY düzleminde (Physics2D değişmez), kamera güneyden ~30° eğimle perspektif bakar. Oyuncuyu yumuşak takip eder; odalı level'larda oda geçişinde kayar.
-- Kamera ayarları tek yerde: Main Camera üzerindeki `CameraFollow` (Tilt Degrees, Distance, Field Of View, Perspective When Tilted, Orthographic Size, Focus Offset Y). Tilt = 0 eski düz üstten ortografik kameraya döner.
-- Dik duran nesneler (oyuncu, düşmanlar, dik props, hasar sayıları) `UprightBillboard` ile kameraya dönük durur; collider'lar sahipte kalır, görsel "Visual" çocuk nesnede olur (collider olan nesneyi asla eğme: ezilir). Sıralama ayak noktasına (pivot) göre, kamera sort ekseni Y.
-- Fare/ekran noktası → dünya için `Camera.ScreenToWorldPoint` değil `GroundRay.ScreenToGround/MouseToGround` (z=0 düzlem kesişimi) kullanılır. Oda sınırı ve düşman doğma mesafesi `GroundRay.TryGetFootprint` ile eğik görüş alanından hesaplanır.
-- Yeni içerik için: `Tools/Camera/Setup Tilt In Open Scene` ve `Setup Tilt In Enemy Prefabs` (tekrar çalıştırılabilir).
+- Ortografik 3/4 kamera (varsayılan): eğim yok (X rotasyonu 0); Craftpix paketi düz ortografik bakışla çizildiği için derinlik hissi kameradan değil Y sıralamasından gelir. Dünya XY düzleminde (Physics2D değişmez). Oyuncuyu yumuşak takip eder; odalı level'larda oda geçişinde kayar, oda görüşten küçükse ortalanır.
+- Pixel perfect: `CameraFollow` ortografik boyutu `Reference Height` (270 = 480x270 sanat pikseli) ve PPU 32'den türetir; ekran yüksekliği 270'in tam katıysa (1080p = 4x) piksel ölçeği tam sayıdır, kamera konumu piksel ızgarasına oturtulur (`RoomCameraBounds` de aynısını yapar). 1080p'de görüş yüksekliği ~8.44 birim (ortografik boyut ~4.22).
+- Kamera ayarları tek yerde: Main Camera üzerindeki `CameraFollow` (Tilt Degrees, Distance, Field Of View, Perspective When Tilted, Orthographic Size, Pixel Perfect, Pixels Per Unit, Reference Height, Focus Offset Y). Tilt > 0 isteğe bağlı eski eğik 2.5D moddur (Perspective When Tilted ile perspektif); varsayılan kapalı.
+- Sıralama: kamera ve proje sort ekseni (0,1,0); oyuncu, düşman, prop ve sütunlar ayak noktasına (sprite pivot) göre Y sıralanır, duvarlar/zemin daha düşük sorting order'da olduğundan oyuncunun arkasında kalır. `UprightBillboard` eğim 0'da kamerayla aynı (kimlik) rotasyonu uygular, yani zararsızdır; yalnızca eğik modda işe yarar. Collider olan nesneyi asla eğme: ezilir.
+- Fare/ekran noktası → dünya için `Camera.ScreenToWorldPoint` değil `GroundRay.ScreenToGround/MouseToGround` (z=0 düzlem kesişimi) kullanılır. Oda sınırı ve düşman doğma mesafesi `GroundRay.TryGetFootprint` ile eğik görüş alanından hesaplanır (ortografik modda sıradan kesişimle aynı sonucu verir).
+- Yeni içerik için (yalnızca eğik mod): `Tools/Camera/Setup Tilt In Open Scene` ve `Setup Tilt In Enemy Prefabs` (tekrar çalıştırılabilir).
 - 8 yönlü hareket, normalize hız (çapraz hızlı değil). Yerçekimi yok.
 - Sprite'lar 4 yönlü (aşağı, yukarı, sol/sağ; sağ = sol ayna).
 - Fizik: Rigidbody2D (gravityScale 0), Collider2D, katmanlar: Player, Enemy, Wall, Hazard.
