@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7924128288432577049}
   - component: {fileID: 7289568436881101072}
   - component: {fileID: 5731789700563622173}
+  - component: {fileID: 5593354160039033064}
   m_Layer: 9
   m_Name: Orc2
   m_TagString: Untagged
@@ -209,3 +210,26 @@ MonoBehaviour:
   staminaOrb: {fileID: 5966990906726234746, guid: b008bbfe90378434b970c072f864bd28, type: 3}
   staminaChance: 0.4
   scatterRadius: 0.4
+--- !u!114 &5593354160039033064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4429777279580219753}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64c390fd4de76e64dae453346df7bc2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stats: {fileID: 11400000, guid: 0181135ae1ec9e44f9bdfa58995dff7e, type: 2}
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 2048
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 512
+  bodyRadius: 0.3
+  whiskerLength: 0.7
+  separationRadius: 0.8
+  separationWeight: 0.8
