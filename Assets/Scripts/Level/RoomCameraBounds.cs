@@ -48,25 +48,25 @@ public sealed class RoomCameraBounds : MonoBehaviour
     void LateUpdate()
     {
         weight = Mathf.MoveTowards(weight, hasBounds ? 1f : 0f, fadeSpeed * Time.deltaTime);
-        if (weight <= 0f || !cam.orthographic)
+        // The tilted camera is not at z = 0, so the clamp works on the ground area it sees and shifts the camera by
+        // the difference.
+        if (weight <= 0f || !GroundRay.TryGetFootprint(cam, out Vector2 focus, out float left, out float right, out float down, out float up))
         {
             return;
         }
 
-        float halfH = cam.orthographicSize;
-        float halfW = halfH * cam.aspect;
-        Vector3 pos = transform.position;
-        Vector3 clamped = new Vector3(Clamp(pos.x, bounds.xMin, bounds.xMax, halfW), Clamp(pos.y, bounds.yMin, bounds.yMax, halfH), pos.z);
-        transform.position = Vector3.Lerp(pos, clamped, weight);
+        Vector2 clamped = new Vector2(Clamp(focus.x, bounds.xMin, bounds.xMax, left, right), Clamp(focus.y, bounds.yMin, bounds.yMax, down, up));
+        transform.position += (Vector3)((clamped - focus) * weight);
     }
 
-    static float Clamp(float value, float min, float max, float half)
+    // Keeps [value - before, value + after] inside [min, max]; centres the view when it is larger than the room.
+    static float Clamp(float value, float min, float max, float before, float after)
     {
-        if (max - min <= half * 2f)
+        if (max - min <= before + after)
         {
-            return (min + max) * 0.5f;
+            return (min + max) * 0.5f + (before - after) * 0.5f;
         }
 
-        return Mathf.Clamp(value, min + half, max - half);
+        return Mathf.Clamp(value, min + before, max - after);
     }
 }

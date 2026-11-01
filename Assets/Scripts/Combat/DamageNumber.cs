@@ -26,6 +26,7 @@ public sealed class DamageNumber : MonoBehaviour
         text.raycastTarget = false;
         text.sortingOrder = sortingOrder;
         text.rectTransform.sizeDelta = new Vector2(4f, 1f);
+        gameObject.AddComponent<UprightBillboard>();
         gameObject.SetActive(false);
     }
 

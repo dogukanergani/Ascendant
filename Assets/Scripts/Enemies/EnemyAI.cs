@@ -72,7 +72,7 @@ public sealed class EnemyAI : MonoBehaviour
     {
         body = GetComponent<Rigidbody2D>();
         health = GetComponent<Health>();
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>();
         colliders = GetComponents<Collider2D>();
         body.gravityScale = 0f;
         body.freezeRotation = true;

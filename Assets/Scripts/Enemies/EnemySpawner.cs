@@ -55,8 +55,13 @@ public sealed class EnemySpawner : MonoBehaviour
     {
         // Half extents of the camera view: the spawn point is placed just beyond its edge in a random direction.
         Camera cam = Camera.main;
-        float halfHeight = cam != null && cam.orthographic ? cam.orthographicSize : 0f;
-        float halfWidth = halfHeight * (cam != null ? cam.aspect : 1f);
+        float halfWidth = 0f;
+        float halfHeight = 0f;
+        if (GroundRay.TryGetFootprint(cam, out _, out float left, out float right, out float down, out float up))
+        {
+            halfWidth = Mathf.Max(left, right);
+            halfHeight = Mathf.Max(down, up);
+        }
         for (int attempt = 0; attempt < 30; attempt++)
         {
             Vector2 dir = Random.insideUnitCircle.normalized;
