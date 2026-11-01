@@ -53,7 +53,7 @@ public sealed class SkillPointsHud : MonoBehaviour
 
     void OnPointsChanged(int balance)
     {
-        balanceText.text = $"Puan: {balance}";
+        balanceText.text = balance.ToString();
     }
 
     // Gains within the toast's lifetime add up into one "+N".

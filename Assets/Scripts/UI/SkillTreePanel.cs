@@ -15,8 +15,8 @@ public sealed class SkillTreePanel : MonoBehaviour
     [SerializeField] SkillCardView cardPrefab;
     [SerializeField] TMP_Text balanceText;
     [SerializeField] Button closeButton;
-    // Skills that are in the design but not in the game yet; shown as locked "?" cards.
-    [SerializeField] string[] lockedSkillNames = { "Bomba", "Yay", "Fener", "Kalkan" };
+    // Skills that are in the design but not in the game yet can be listed here; they show as locked "?" cards.
+    [SerializeField] string[] lockedSkillNames = System.Array.Empty<string>();
     [SerializeField] int columns = 4;
 
     readonly List<SkillCardView> cards = new();
@@ -218,7 +218,7 @@ public sealed class SkillTreePanel : MonoBehaviour
 
     void OnPointsChanged(int balance)
     {
-        balanceText.text = $"Puan: {balance}";
+        balanceText.text = balance.ToString();
         RefreshCards();
     }
 

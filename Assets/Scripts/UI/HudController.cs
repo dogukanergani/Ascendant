@@ -7,6 +7,7 @@ using UnityEngine.UI;
 // Hearts and stamina follow the player's Health and Stamina components.
 public sealed class HudController : MonoBehaviour
 {
+    [SerializeField] UITheme theme;
     [SerializeField] Image[] hearts;
     [SerializeField] Sprite heartFull;
     [SerializeField] Sprite heartHalf;
@@ -21,22 +22,30 @@ public sealed class HudController : MonoBehaviour
     [SerializeField] SkillManager skillManager;
     [SerializeField] float shakeDuration = 0.3f;
     [SerializeField] float shakeAmplitude = 10f;
-
-    static readonly Color FrameColor = new(0.14f, 0.16f, 0.24f, 1f);
-    static readonly Color FrameFlashColor = new(0.85f, 0.2f, 0.2f, 1f);
+    [SerializeField] float heartPunchDuration = 0.35f;
 
     readonly Dictionary<string, SkillSlotView> slots = new();
 
     Health health;
     Stamina stamina;
+    PlayerController2D player;
     Vector2 staminaBarHome;
     float shakeEndsAt = float.NegativeInfinity;
+    float[] heartPunchAt;
+    int[] heartParts;
 
     void Start()
     {
         if (skillManager == null)
         {
             skillManager = FindFirstObjectByType<SkillManager>();
+        }
+
+        player = FindFirstObjectByType<PlayerController2D>();
+        if (player != null)
+        {
+            health = player.GetComponent<Health>();
+            stamina = player.GetComponent<Stamina>();
         }
 
         if (skillManager == null)
@@ -55,11 +64,12 @@ public sealed class HudController : MonoBehaviour
             }
         }
 
-        PlayerController2D player = FindFirstObjectByType<PlayerController2D>();
-        if (player != null)
+        heartPunchAt = new float[hearts.Length];
+        heartParts = new int[hearts.Length];
+        for (int i = 0; i < hearts.Length; i++)
         {
-            health = player.GetComponent<Health>();
-            stamina = player.GetComponent<Stamina>();
+            heartPunchAt[i] = float.NegativeInfinity;
+            heartParts[i] = -1;
         }
 
         if (health != null)
@@ -113,7 +123,8 @@ public sealed class HudController : MonoBehaviour
             timerText.text = LevelTimer.Format(timer.Elapsed);
         }
 
-        UpdateStaminaShake();
+        UpdateStamina();
+        UpdateHeartPunch();
     }
 
     // Health is counted in parts; each heart shows up to two of them.
@@ -122,9 +133,29 @@ public sealed class HudController : MonoBehaviour
         int partsPerHeart = health != null ? health.PartsPerHeart : 2;
         for (int i = 0; i < hearts.Length; i++)
         {
-            int parts = current - i * partsPerHeart;
+            int parts = Mathf.Clamp(current - i * partsPerHeart, 0, partsPerHeart);
             hearts[i].gameObject.SetActive(i * partsPerHeart < max);
             hearts[i].sprite = parts >= partsPerHeart ? heartFull : parts > 0 ? heartHalf : heartEmpty;
+            // A heart that lost a part pops.
+            if (heartParts != null && heartParts[i] >= 0 && parts < heartParts[i])
+            {
+                heartPunchAt[i] = Time.unscaledTime;
+            }
+
+            if (heartParts != null)
+            {
+                heartParts[i] = parts;
+            }
+        }
+    }
+
+    void UpdateHeartPunch()
+    {
+        for (int i = 0; i < hearts.Length; i++)
+        {
+            float t = (Time.unscaledTime - heartPunchAt[i]) / heartPunchDuration;
+            float scale = t is >= 0f and < 1f ? 1f + 0.45f * Mathf.Sin(t * Mathf.PI) : 1f;
+            hearts[i].rectTransform.localScale = new Vector3(scale, scale, 1f);
         }
     }
 
@@ -138,25 +169,38 @@ public sealed class HudController : MonoBehaviour
         shakeEndsAt = Time.unscaledTime + shakeDuration;
     }
 
-    void UpdateStaminaShake()
+    // Refused spend: the bar shakes and its frame flashes red. Low stamina: the fill turns red and pulses.
+    void UpdateStamina()
     {
         if (stamina == null)
         {
             return;
         }
 
-        float remaining = shakeEndsAt - Time.unscaledTime;
-        if (remaining <= 0f)
+        Color frameColor = Color.white;
+        Vector2 offset = Vector2.zero;
+        bool low = stamina.Max > 0f && stamina.Current / stamina.Max < theme.lowStaminaFraction;
+        if (low)
         {
-            staminaBar.anchoredPosition = staminaBarHome;
-            staminaFrame.color = FrameColor;
-            return;
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 9f);
+            staminaFill.color = Color.Lerp(theme.stamina, theme.staminaLow, 0.55f + 0.45f * pulse);
+            offset.x += Mathf.Sin(Time.unscaledTime * 55f) * 1.5f;
+        }
+        else
+        {
+            staminaFill.color = theme.stamina;
         }
 
-        float strength = remaining / shakeDuration;
-        float offset = Mathf.Sin(Time.unscaledTime * 80f) * shakeAmplitude * strength;
-        staminaBar.anchoredPosition = staminaBarHome + new Vector2(offset, 0f);
-        staminaFrame.color = Color.Lerp(FrameColor, FrameFlashColor, strength);
+        float remaining = shakeEndsAt - Time.unscaledTime;
+        if (remaining > 0f)
+        {
+            float strength = remaining / shakeDuration;
+            offset.x += Mathf.Sin(Time.unscaledTime * 80f) * shakeAmplitude * strength;
+            frameColor = Color.Lerp(Color.white, theme.staminaLow, strength);
+        }
+
+        staminaBar.anchoredPosition = staminaBarHome + offset;
+        staminaFrame.color = frameColor;
     }
 
     void OnUnlockChanged(SkillDefinition definition, bool unlocked)
@@ -173,14 +217,14 @@ public sealed class HudController : MonoBehaviour
 
     void AddSlot(SkillDefinition definition)
     {
-        // Skills without an icon (the staff for now) get no slot.
-        if (definition.Icon == null || slots.ContainsKey(definition.SkillId))
+        Sprite icon = definition.Icon != null ? definition.Icon : theme.FallbackSkillIcon(definition.SkillId);
+        if (icon == null || slots.ContainsKey(definition.SkillId))
         {
             return;
         }
 
         SkillSlotView slot = Instantiate(slotPrefab, slotContainer);
-        slot.Bind(skillManager, definition);
+        slot.Bind(skillManager, definition, stamina, icon);
         slots[definition.SkillId] = slot;
     }
 }

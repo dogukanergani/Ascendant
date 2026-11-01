@@ -4,21 +4,20 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// One card in the skill tree: icon, name, tier pips, next tier cost and effect, and the upgrade button.
+// One card in the skill tree: icon, name, tier pips, effect text, and the upgrade button with its cost.
 // A locked card (a skill that is not in the game yet or not unlocked) shows "?" and cannot be upgraded.
 public sealed class SkillCardView : MonoBehaviour, IPointerEnterHandler
 {
-    [SerializeField] Image selection;
+    [SerializeField] UITheme theme;
+    [SerializeField] Image background;
     [SerializeField] Image icon;
     [SerializeField] TMP_Text nameText;
     [SerializeField] Image[] pips;
-    [SerializeField] TMP_Text costText;
     [SerializeField] TMP_Text effectText;
     [SerializeField] Button upgradeButton;
     [SerializeField] TMP_Text upgradeLabel;
-    [SerializeField] Color pipOn = new(1f, 0.85f, 0.3f, 1f);
-    [SerializeField] Color pipOff = new(0.25f, 0.27f, 0.35f, 1f);
-    [SerializeField] Color placeholderColor = new(0.35f, 0.4f, 0.6f, 1f);
+    [SerializeField] TMP_Text costText;
+    [SerializeField] GameObject costIcon;
 
     SkillDefinition definition;
 
@@ -37,33 +36,26 @@ public sealed class SkillCardView : MonoBehaviour, IPointerEnterHandler
     {
         definition = skill;
         nameText.text = skill.DisplayName;
-        if (skill.Icon != null)
-        {
-            icon.sprite = skill.Icon;
-            icon.color = Color.white;
-            icon.preserveAspect = true;
-        }
-        else
-        {
-            icon.sprite = null;
-            icon.color = placeholderColor;
-        }
+        Sprite sprite = skill.Icon != null ? skill.Icon : theme.FallbackSkillIcon(skill.SkillId);
+        icon.sprite = sprite;
+        icon.enabled = sprite != null;
+        icon.color = Color.white;
+        icon.preserveAspect = true;
     }
 
     public void BindLocked(string skillName)
     {
         definition = null;
         nameText.text = skillName;
-        icon.sprite = null;
-        icon.color = new Color(0.2f, 0.22f, 0.3f, 1f);
+        icon.sprite = theme.lockIcon;
+        icon.enabled = true;
+        icon.color = Color.white;
+        icon.preserveAspect = true;
         SetPips(0);
-        costText.text = string.Empty;
         effectText.text = "?";
-        upgradeLabel.text = "Kilitli";
-        upgradeButton.interactable = false;
+        SetButton("KİLİTLİ", -1, false);
     }
 
-    // tier is the current tier; unlocked false greys the card out.
     public void Refresh(SkillManager manager)
     {
         if (definition == null || manager == null)
@@ -74,33 +66,28 @@ public sealed class SkillCardView : MonoBehaviour, IPointerEnterHandler
         string id = definition.SkillId;
         int tier = manager.GetTier(id);
         bool unlocked = manager.IsUnlocked(id);
-        SetPips(tier);
+        SetPips(unlocked ? tier : 0);
         int cost = manager.GetUpgradeCost(id);
         if (!unlocked)
         {
-            costText.text = string.Empty;
             effectText.text = "Kilitli";
-            upgradeLabel.text = "Kilitli";
+            SetButton("KİLİTLİ", -1, false);
         }
         else if (cost < 0)
         {
-            costText.text = "En üst kademe";
             effectText.text = definition.DescribeTier(tier);
-            upgradeLabel.text = "Maks";
+            SetButton("MAKS", -1, false);
         }
         else
         {
-            costText.text = $"Maliyet: {cost}";
-            effectText.text = $"{definition.DescribeTier(tier + 1)}";
-            upgradeLabel.text = "Yükselt";
+            effectText.text = definition.DescribeTier(tier + 1);
+            SetButton("YÜKSELT", cost, manager.CanUpgrade(id));
         }
-
-        upgradeButton.interactable = manager.CanUpgrade(id);
     }
 
     public void SetSelected(bool selected)
     {
-        selection.enabled = selected;
+        background.sprite = selected ? theme.cardSelectedSprite : theme.cardSprite;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -108,11 +95,25 @@ public sealed class SkillCardView : MonoBehaviour, IPointerEnterHandler
         Hovered?.Invoke(this);
     }
 
+    // cost < 0 hides the coin and price. Disabled upgrade buttons use the grey sprite and a dim label.
+    void SetButton(string label, int cost, bool interactable)
+    {
+        upgradeLabel.text = label;
+        costText.text = cost >= 0 ? cost.ToString() : string.Empty;
+        costIcon.SetActive(cost >= 0);
+        upgradeButton.interactable = interactable;
+        upgradeLabel.color = interactable ? theme.border : theme.disabledText;
+        costText.color = interactable ? theme.border : theme.disabledText;
+        // With a price the label sits left of the coin; without one it fills the button.
+        RectTransform labelRect = upgradeLabel.rectTransform;
+        labelRect.offsetMax = new Vector2(cost >= 0 ? -96f : -8f, -8f);
+    }
+
     void SetPips(int filled)
     {
         for (int i = 0; i < pips.Length; i++)
         {
-            pips[i].color = i < filled ? pipOn : pipOff;
+            pips[i].sprite = i < filled ? theme.pipFull : theme.pipEmpty;
         }
     }
 }

@@ -77,3 +77,11 @@ Her skill 3 kademelidir. Kademe 2 ve 3 skill puanıyla açılır.
 - Her vuruş: taban × rastgele 0.85-1.2, %12 ihtimalle kritik ×1.6 (`DamageRoll`). Asa kombosunun 3. vuruşu ×1.4. Kademe `SkillManager.GetTier/SetTier` ile tutulur (skill ağacı kademe açınca çağırır).
 - Düşmana hasar verilince yüzen sayı çıkar (beyaz, kritik büyük turuncu, Büyü Topu mavi).
 - Test: `EnemySpawner` oyuncu çevresinde ekran dışında düşman üretir (en fazla 15).
+
+## Arayüz
+- Tek görsel dil: koyu mor-lacivert zemin, altın/turuncu vurgu, can kırmızı, stamina mavi, açık krem metin. Hepsi `Assets/Art/UI/Theme/UITheme.asset` içinde (renkler, boyutlar, font, 9-slice sprite'lar); renk/boyut değişince `Tools/UI/Rebuild All` ile prefab ve sahneler yeniden üretilir.
+- Font: kodla çizilen bitmap pixel font (`PixelUI`, kalın hali `PixelUIBold`; Türkçe karakterler dahil, `Tools/UI/Build Pixel Font`). Font boyutları 12'nin katı olmalı (24/36/48/72), yoksa pikseller bozulur. Hasar sayıları ve pickup yazıları eski `PixelFont.asset` ile kalır.
+- Butonlar `UIButtonFx` ile hover 1.06 / basınç 0.96 ölçek alır; klavye/gamepad seçimi aynı vurguyu ve yan okları gösterir. Sahne geçişleri `SceneRouter` üzerinden 0.25 sn siyaha kararır (`ScreenFade`).
+- HUD (sol üst): kalpler, stamina barı (düşükken kırmızıya döner ve titrer), açık skill slotları (tuş harfi, bekleme sayacı, stamina yetmezken karartma); sağ üstte süre ve skill puanı; boss odasında üstte `BossHealthBar` (`EnemyStats.isBoss` işaretli düşman doğunca `RoomController.EnemySpawned` ile açılır, boss ölünce kapanır).
+- Esc duraklatma menüsü (`PauseMenu`): Devam, Level Seç, Ana Menü. Skill ağacı burada yok; yalnızca level seçme ve level sonu ekranından açılır. Skill ağacı veya skor ekranı açıkken Esc duraklatmayı açmaz.
+- Ana menü ve level seçimi parallax mağara arka planı ve süzülen kıvılcımlarla (`MenuBackground`); skor ekranında sayılar sayarak artar, yıldızlar sırayla yanar.

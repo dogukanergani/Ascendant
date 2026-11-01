@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public sealed class LevelSelectController : MonoBehaviour
@@ -10,6 +11,9 @@ public sealed class LevelSelectController : MonoBehaviour
     [SerializeField] TMP_Text messageText;
     [SerializeField] Button skillTreeButton;
     [SerializeField] SkillTreePanel skillTreePanel;
+    [SerializeField] string[] levelNames = { "Orc Mağarası", "Gölge Geçidi", "Kristal Mahzen", "Çürük Orman", "Yıldız Kulesi" };
+
+    readonly System.Collections.Generic.List<LevelButtonView> cards = new();
 
     void Awake()
     {
@@ -17,10 +21,19 @@ public sealed class LevelSelectController : MonoBehaviour
         backButton.onClick.AddListener(SceneRouter.LoadMenu);
         for (int i = 0; i < ProgressService.LevelCount; i++)
         {
-            Instantiate(buttonPrefab, container).Bind(i, OnLevelClicked);
+            LevelButtonView card = Instantiate(buttonPrefab, container);
+            card.Bind(i, i < levelNames.Length ? levelNames[i] : $"Level {i + 1}", OnLevelClicked);
+            cards.Add(card);
         }
 
         messageText.text = string.Empty;
+    }
+
+    void Start()
+    {
+        // Keyboard / gamepad start on the level the player should play next.
+        int next = Mathf.Clamp(ProgressService.GetNextLevel(), 0, cards.Count - 1);
+        EventSystem.current?.SetSelectedGameObject(cards[next].Button.gameObject);
     }
 
     void OnLevelClicked(int level)

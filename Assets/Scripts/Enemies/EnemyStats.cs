@@ -4,6 +4,11 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Ascendant/Enemy Stats", fileName = "EnemyStats")]
 public sealed class EnemyStats : ScriptableObject
 {
+    [Header("Identity")]
+    // Bosses get a health bar at the top of the HUD (BossHealthBar) showing displayName.
+    public bool isBoss;
+    public string displayName = "";
+
     [Header("Health")]
     // Hit points. Player skill damage is rolled in the same scale (see SkillDefinition tier damage).
     public int maxHealth = 20;

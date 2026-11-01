@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public sealed class MainMenuController : MonoBehaviour
@@ -18,6 +19,12 @@ public sealed class MainMenuController : MonoBehaviour
         {
             messageText.text = string.Empty;
         }
+    }
+
+    void Start()
+    {
+        // Keyboard / gamepad need a selected button to navigate from.
+        EventSystem.current?.SetSelectedGameObject(startButton.gameObject);
     }
 
     void OnStart()

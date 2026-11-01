@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9ec582565b641f438fdeb8fbaba6fe3, type: 3}
+  m_Name: UITheme
+  m_EditorClassIdentifier: 
+  background: {r: 0.07, g: 0.06, b: 0.13, a: 1}
+  backgroundLight: {r: 0.12, g: 0.1, b: 0.22, a: 1}
+  panel: {r: 0.16, g: 0.14, b: 0.29, a: 1}
+  panelDark: {r: 0.1, g: 0.09, b: 0.19, a: 1}
+  border: {r: 0.04, g: 0.035, b: 0.09, a: 1}
+  borderLight: {r: 0.36, g: 0.32, b: 0.63, a: 1}
+  accent: {r: 0.96, g: 0.72, b: 0.24, a: 1}
+  accentDark: {r: 0.78, g: 0.4, b: 0.14, a: 1}
+  health: {r: 0.86, g: 0.23, b: 0.29, a: 1}
+  healthDark: {r: 0.27, g: 0.09, b: 0.14, a: 1}
+  stamina: {r: 0.25, g: 0.64, b: 0.95, a: 1}
+  staminaDark: {r: 0.08, g: 0.17, b: 0.3, a: 1}
+  staminaLow: {r: 0.93, g: 0.3, b: 0.28, a: 1}
+  disabled: {r: 0.35, g: 0.34, b: 0.46, a: 1}
+  disabledText: {r: 0.55, g: 0.53, b: 0.66, a: 1}
+  text: {r: 0.96, g: 0.92, b: 0.82, a: 1}
+  textDim: {r: 0.72, g: 0.68, b: 0.82, a: 1}
+  success: {r: 0.5, g: 0.8, b: 0.43, a: 1}
+  dim: {r: 0.03, g: 0.02, b: 0.07, a: 0.78}
+  font: {fileID: 11400000, guid: 576db8a0bdcadd749925c3e4be966eb8, type: 2}
+  fontBold: {fileID: 11400000, guid: 614749bda03fb6b42a6ceb5dd1447269, type: 2}
+  pixelScale: 3
+  fontSmall: 24
+  fontBody: 36
+  fontLarge: 48
+  fontTitle: 72
+  fontHuge: 120
+  safeMargin: 48
+  buttonSize: {x: 520, y: 96}
+  smallButtonSize: {x: 300, y: 80}
+  hoverScale: 1.06
+  pressedScale: 0.96
+  lowStaminaFraction: 0.25
+  panelSprite: {fileID: 21300000, guid: db7094d6176d35c44b4f8a5734ca7ba1, type: 3}
+  cardSprite: {fileID: 21300000, guid: 8690b65467619ed41bed929689713b7e, type: 3}
+  cardSelectedSprite: {fileID: 21300000, guid: 7fea9f80365fc7b4e86e424538688bd9, type: 3}
+  slotSprite: {fileID: 21300000, guid: de494de6db7e71f4f87539da89b60ee2, type: 3}
+  slotSelectedSprite: {fileID: 21300000, guid: 537f59376a67f90438eb14b9bebf6b90, type: 3}
+  badgeSprite: {fileID: 21300000, guid: c0d54d2a670992c4dac553efbe8797f3, type: 3}
+  barFrameSprite: {fileID: 21300000, guid: 479211d070532c64786dcfd746087415, type: 3}
+  barFillSprite: {fileID: 21300000, guid: 87b4627ca01b57943972f78b14ec0ff1, type: 3}
+  whiteSprite: {fileID: 21300000, guid: a55fa9e3ff006b142b7c35067a48fb06, type: 3}
+  buttonDefault:
+    normal: {fileID: 21300000, guid: f7b2bf009e358094d989085e6bee6a75, type: 3}
+    hover: {fileID: 21300000, guid: acfe05d7962be264593d7130fb2389cb, type: 3}
+    pressed: {fileID: 21300000, guid: 3aead2dd95a2c3e4c807fe0c83a9358d, type: 3}
+    disabled: {fileID: 21300000, guid: 383548ecd8beb3847bb066e5cc663170, type: 3}
+  buttonPrimary:
+    normal: {fileID: 21300000, guid: fd421b670c53faf4da56d7393a2c336d, type: 3}
+    hover: {fileID: 21300000, guid: ef55d0c9c169f624d99de2c95689bf94, type: 3}
+    pressed: {fileID: 21300000, guid: 02ad9ab36bc855a4ca177d988e198204, type: 3}
+    disabled: {fileID: 21300000, guid: 081664f171e83284fa128848805a8db8, type: 3}
+  heartFull: {fileID: 21300000, guid: e4dfb0de85c592c46a4f1b484dab3264, type: 3}
+  heartHalf: {fileID: 21300000, guid: ddbb2044e150eef499bb14c76e578752, type: 3}
+  heartEmpty: {fileID: 21300000, guid: a64bdf5320c0d1e45b63f6e82101eed9, type: 3}
+  starFull: {fileID: 21300000, guid: b78d4ca89e9d37b418bf2bd619c6b03e, type: 3}
+  starEmpty: {fileID: 21300000, guid: 61b941596d42fdc43ae615dfaad8d2bc, type: 3}
+  lockIcon: {fileID: 21300000, guid: 62dae2186945eb54ab292cf3ce056dc7, type: 3}
+  coinIcon: {fileID: 21300000, guid: f36ea4e651e1cea4aab77ab950cc31ea, type: 3}
+  clockIcon: {fileID: 21300000, guid: 61ee515a4cdf08245a90e2b19c7ccc3a, type: 3}
+  pipFull: {fileID: 21300000, guid: 01f90320ead999f4e8c89900599e861e, type: 3}
+  pipEmpty: {fileID: 21300000, guid: b5ebc6330d1356444ab14ad876e2b1bd, type: 3}
+  arrowRight: {fileID: 21300000, guid: 023b46b9d66877d4691c25b3111d67cc, type: 3}
+  arrowLeft: {fileID: 21300000, guid: 520c86070f565b04bb6e0ef6747d771a, type: 3}
+  dashIcon: {fileID: 21300000, guid: b2e936e57017e3f429e0e42a3cbabf8f, type: 3}
+  staffIcon: {fileID: 21300000, guid: 5bbe8e0a342e1bb4c8301e775ecd73c6, type: 3}
+  emberSprite: {fileID: 21300000, guid: f7187fcc182cc5d42a930f6907e907c7, type: 3}

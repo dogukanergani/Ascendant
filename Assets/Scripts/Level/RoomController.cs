@@ -68,6 +68,8 @@ public sealed class RoomController : MonoBehaviour
 
     public event Action<RoomController> Cleared;
     public event Action EnemyKilled;
+    // Raised for every enemy the room spawns; the HUD's boss bar listens for the boss.
+    public event Action<GameObject> EnemySpawned;
 
     void Reset()
     {
@@ -172,6 +174,8 @@ public sealed class RoomController : MonoBehaviour
         {
             ai.StartHunting();
         }
+
+        EnemySpawned?.Invoke(enemy);
 
         if (!enemy.TryGetComponent(out Health health))
         {

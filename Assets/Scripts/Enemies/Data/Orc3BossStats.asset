@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8da63e857f55862409d4d0864060ec7d, type: 3}
   m_Name: Orc3BossStats
   m_EditorClassIdentifier: 
+  isBoss: 1
+  displayName: "ORC \u015EEF\u0130"
   maxHealth: 300
   skillPointReward: 15
   patrolSpeed: 0.6
