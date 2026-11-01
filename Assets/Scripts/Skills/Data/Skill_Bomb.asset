@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 642461c1f93145441872143ffe21c5d3, type: 3}
+  m_Name: Skill_Bomb
+  m_EditorClassIdentifier: 
+  skillId: bomb
+  displayName: Bomba
+  icon: {fileID: 577376368453728933, guid: 294236ec8922a9d4f82dd3ef22ec8479, type: 3}
+  cooldown: 0.8
+  staminaCost: 25
+  unlockedByDefault: 1
+  activationKey: 21
+  tierDamage:
+  - {x: 14, y: 18}
+  - {x: 26, y: 32}
+  - {x: 44, y: 52}
+  upgradeCosts: 050000000c000000
+  tierStaminaCost:
+  - 25
+  - 25
+  - 25
+  tierReachMultiplier: []
+  tierNotes:
+  - "Yar\u0131\xE7ap 2.0. \xC7atlak duvarlar\u0131 y\u0131kar (G)"
+  - "Yar\u0131\xE7ap 2.6"
+  - "Yar\u0131\xE7ap 3.2. Zincirleme patlama: alandaki bombalar an\u0131nda patlar"

@@ -452,6 +452,10 @@ GameObject:
   - component: {fileID: 328222749}
   - component: {fileID: 328222753}
   - component: {fileID: 328222752}
+  - component: {fileID: 328222757}
+  - component: {fileID: 328222756}
+  - component: {fileID: 328222755}
+  - component: {fileID: 328222754}
   m_Layer: 10
   m_Name: Player
   m_TagString: Untagged
@@ -728,6 +732,115 @@ MonoBehaviour:
   assistStrength: 0.7
   hitStopTime: 0.04
   flashMaterial: {fileID: 2100000, guid: 7532b03a1b5fd5c45afd12eb9f7878b7, type: 2}
+--- !u!114 &328222754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328222734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a775ed00147f000439a362039e7a9807, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 6fcc6009c856ac6408f2d2809e9efba9, type: 2}
+  staminaPerSecond: 4
+  minStaminaToLight: 3
+  tierRadius:
+  - 4
+  - 6
+  - 8
+  tier2SpeedFactor: 1.15
+  flashStunTime: 1.5
+  flashCooldown: 8
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 512
+  lightMaterial: {fileID: 2100000, guid: 02d870809c9b4ae43bd022af8f18f854, type: 2}
+  lightCenter: {x: 0, y: 0.3}
+  lightColor: {r: 1, g: 0.85, b: 0.35, a: 0.4}
+--- !u!114 &328222755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328222734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a50fd32a4354fd8408fa7598a84771da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 639da5b5247198f408e2f93ab486c20d, type: 2}
+  arrowPrefab: {fileID: 3550757151439767833, guid: ee0b169552d427a4fa6ef22fdbdbba8c, type: 3}
+  spawnOffset: {x: 0, y: 0.3}
+  spawnDistance: 0.6
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 2048
+  tierPierce: 010000000300000003000000
+  volleyHoldTime: 0.4
+  volleyDistance: 5
+  volleyCount: 8
+  volleySpread: 2.2
+  volleyExtraStamina: 20
+  volleyDamageMultiplier: 0.45
+  volleyAreaRadius: 1
+  volleyStagger: 0.06
+  volleyFallHeight: 5
+  volleyFallTime: 0.3
+  markerColor: {r: 1, g: 0.85, b: 0.3, a: 0.5}
+--- !u!114 &328222756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328222734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7800a582aafe09a45b26bf6465c968d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 86093c2649af4104b8030653e0ee88fe, type: 2}
+  bombPrefab: {fileID: 8356810062963558967, guid: 8ad4c65b345240646957f15743efaf30, type: 3}
+  spawnOffset: {x: 0, y: 0.3}
+  spawnDistance: 0.8
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 2048
+  tierRadius:
+  - 2
+  - 2.6
+  - 3.2
+--- !u!114 &328222757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328222734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 524bd6225a7d41f439de51a2f523c5d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 6565d790762986940856f479a84c0299, type: 2}
+  staminaPerSecond: 12
+  minStaminaToRaise: 5
+  moveSpeedFactor: 0.5
+  parryWindow: 0.2
+  parryStunTime: 1.2
+  parryStaminaRefund: 10
+  blockPushSpeed: 7
+  blockStunTime: 0.25
+  parryBonusMultiplier: 2
+  parryBonusDuration: 5
+  visualCenter: {x: 0, y: 0.3}
+  visualDistance: 0.55
+  visualSize: 1.5
+  shieldColor: {r: 0.35, g: 0.65, b: 1, a: 0.9}
 --- !u!114 &445466307
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2796,6 +2909,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fd8889df847be4745adb226a42f469c2, type: 2}
   - {fileID: 11400000, guid: 145cb46b04fd2084ca76b3b9d87d7196, type: 2}
   - {fileID: 11400000, guid: 1e0caecf31b4ca6448a2dd50a3c14a9a, type: 2}
+  - {fileID: 11400000, guid: 6565d790762986940856f479a84c0299, type: 2}
+  - {fileID: 11400000, guid: 86093c2649af4104b8030653e0ee88fe, type: 2}
+  - {fileID: 11400000, guid: 639da5b5247198f408e2f93ab486c20d, type: 2}
+  - {fileID: 11400000, guid: 6fcc6009c856ac6408f2d2809e9efba9, type: 2}
   menuMode: 0
 --- !u!4 &1683219192
 Transform:

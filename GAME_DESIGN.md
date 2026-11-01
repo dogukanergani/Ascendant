@@ -32,10 +32,10 @@ Her skill 3 kademelidir. Kademe 2 ve 3 skill puanıyla açılır.
 | Asa (büyülü savuruş) | 3 vuruş kombo, geri itme | Geniş savuruş | Dalga atan büyü | Açık |
 | Dash | Kısa atılma, kısa dokunulmazlık | İz bırakır (hasar verir) | Işınlanır (duvardan geçer) | Level 2 boss |
 | Büyü Topu | Ateş topu fırlatır | Delici/yanıcı top | Büyü yağmuru | Level 3 boss |
-| Kalkan | Mermiyi engeller | Mermiyi yansıtır | Parry sonrası güçlü vuruş | Level 4 boss |
-| Bomba | Çatlak duvarı yıkar | Alan hasarı | Zincirleme patlama | Level 5 boss |
-| Yay | Uzak şalter/düşman | Delici ok | Ok yağmuru | Level 6 boss |
-| Fener | Karanlığı aydınlatır | Görünmez yolu gösterir | Düşmanı kör eder | Level 7 boss |
+| Kalkan (L / sağ tık, basılı tut) | Ön yarım daireden gelen yakın dövüş vuruşunu engeller ve saldırgan geri itilir; -12 stamina/sn, yavaşlatır | Parry: ilk 0.2 sn'de engellenen vuruşun sahibi sersemler, +10 stamina | Parry sonrası sonraki Asa vuruşu x2 | Level 4 boss (test için açık) |
+| Bomba (G, 25 stamina) | Yarıçap 2.0, çatlak duvarı yıkar, düşmana hasar (14-18) | Yarıçap 2.6, hasar 26-32 | Yarıçap 3.2, hasar 44-52, zincirleme patlama | Level 5 boss (test için açık) |
+| Yay (R, 10 stamina) | Hızlı tek hedef oku (12-16) | Delici ok, 3 düşmana kadar (26-34) | Basılı tut + bırak: 8 oklu ok yağmuru, 30 stamina (46-56) | Level 6 boss (test için açık) |
+| Fener (E, aç/kapa, -4 stamina/sn) | Yarıçap 4, `HiddenReveal` nesnelerini gösterir | Yarıçap 6, gizli duvarları açar, hafif hızlandırır | Yarıçap 8, açılırken flaş: düşmanlar 1.5 sn sersemler (8 sn bekleme) | Level 7 boss (test için açık) |
 
 **Kombolar (iki skill art arda):** Dash + Asa = dönen kesik, Büyü Topu + Dash = iz bırakan top, Bomba + Ok = patlayan ok.
 

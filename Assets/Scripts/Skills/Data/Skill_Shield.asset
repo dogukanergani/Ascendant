@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 642461c1f93145441872143ffe21c5d3, type: 3}
+  m_Name: Skill_Shield
+  m_EditorClassIdentifier: 
+  skillId: shield
+  displayName: Kalkan
+  icon: {fileID: 298280375072181815, guid: 6a9bd76923826804399a3fd0fb01b720, type: 3}
+  cooldown: 0.4
+  staminaCost: 0
+  unlockedByDefault: 1
+  activationKey: 26
+  tierDamage: []
+  upgradeCosts: 050000000c000000
+  tierStaminaCost: []
+  tierReachMultiplier: []
+  tierNotes:
+  - "\xD6n yar\u0131m daireden gelen vuru\u015Fu engeller ve geri iter. Bas\u0131l\u0131
+    tut (L / sa\u011F t\u0131k): -12 stamina/sn, yava\u015Flat\u0131r"
+  - "Parry: ilk 0.2 sn'de engellenen vuru\u015Fun sahibi sersemler, +10 stamina"
+  - "Parry sonras\u0131 bir sonraki Asa vuru\u015Fu 2 kat hasar"

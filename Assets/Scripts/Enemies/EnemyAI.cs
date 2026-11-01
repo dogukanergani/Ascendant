@@ -277,7 +277,7 @@ public sealed class EnemyAI : MonoBehaviour
 
         Vector2 away = Target - Self;
         Vector2 knockback = (away.sqrMagnitude > 0.0001f ? away.normalized : facing) * stats.knockbackSpeed;
-        player.GetComponent<IDamageable>()?.Damage(new DamageInfo(stats.damage, knockback, false, DamageSource.Enemy));
+        player.GetComponent<IDamageable>()?.Damage(new DamageInfo(stats.damage, knockback, false, DamageSource.Enemy, Self, true, this));
     }
 
     void OnDamaged(DamageInfo info)
@@ -293,9 +293,26 @@ public sealed class EnemyAI : MonoBehaviour
             return;
         }
 
+        EnterHurt(stats.hurtStun, knockback.sqrMagnitude > 0.0001f ? knockback.normalized * stats.hurtKnockbackSpeed : Vector2.zero);
+    }
+
+    // Staggers the orc without damage (shield parry, lantern flash): interrupts any attack for the duration.
+    public void Stun(float duration, Vector2 push)
+    {
+        if (state == State.Dead || health.IsDead)
+        {
+            return;
+        }
+
+        EnterHurt(duration, push);
+    }
+
+    void EnterHurt(float duration, Vector2 knock)
+    {
         state = State.Hurt;
-        hurtUntil = Time.time + stats.hurtStun;
-        knockVelocity = knockback.sqrMagnitude > 0.0001f ? knockback.normalized * stats.hurtKnockbackSpeed : Vector2.zero;
+        // A longer stun already running is never cut short by a later, shorter one.
+        hurtUntil = Mathf.Max(hurtUntil, Time.time + duration);
+        knockVelocity = knock;
         body.linearVelocity = knockVelocity;
         animator.SetBool(IsMovingHash, false);
         animator.ResetTrigger(AttackHash);

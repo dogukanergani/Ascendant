@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 642461c1f93145441872143ffe21c5d3, type: 3}
+  m_Name: Skill_Lantern
+  m_EditorClassIdentifier: 
+  skillId: lantern
+  displayName: Fener
+  icon: {fileID: -8864552384324878884, guid: d7a634c9080c13545bb2d0c046a76a2e, type: 3}
+  cooldown: 0.3
+  staminaCost: 0
+  unlockedByDefault: 1
+  activationKey: 19
+  tierDamage: []
+  upgradeCosts: 050000000c000000
+  tierStaminaCost: []
+  tierReachMultiplier: []
+  tierNotes:
+  - "Yar\u0131\xE7ap 4. Gizli nesneleri g\xF6sterir. A\xE7/kapa (E): -4 stamina/sn"
+  - "Yar\u0131\xE7ap 6. Gizli duvarlar\u0131 a\xE7ar, hafif h\u0131zland\u0131r\u0131r"
+  - "Yar\u0131\xE7ap 8. A\xE7\u0131l\u0131rken fla\u015F: yak\u0131ndaki d\xFC\u015Fmanlar
+    1.5 sn sersemler (8 sn bekleme)"

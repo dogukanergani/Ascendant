@@ -528,11 +528,7 @@ MonoBehaviour:
   cardPrefab: {fileID: 6570325848654407098, guid: de35510d75c7f1e42b0fb63e88607bc2, type: 3}
   balanceText: {fileID: 8221615967361134735}
   closeButton: {fileID: 7776871010213719724}
-  lockedSkillNames:
-  - Bomba
-  - Yay
-  - Fener
-  - Kalkan
+  lockedSkillNames: []
   columns: 4
 --- !u!1 &5848903615867714376
 GameObject:

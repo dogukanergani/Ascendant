@@ -20,9 +20,23 @@ public sealed class SpellExplosion : MonoBehaviour
     float radius;
     bool inUse;
 
+    Color startColor = new(0.85f, 0.95f, 1f);
+    Color endColor = new(0.55f, 0.3f, 1f);
+
     public static void Spawn(Vector2 position, float radius, float duration = 0.25f)
     {
         SpellExplosion explosion = Acquire();
+        explosion.startColor = new Color(0.85f, 0.95f, 1f);
+        explosion.endColor = new Color(0.55f, 0.3f, 1f);
+        explosion.Play(position, radius, duration);
+    }
+
+    // Same burst in other colours (bomb: white-yellow to orange).
+    public static void Spawn(Vector2 position, float radius, float duration, Color from, Color to)
+    {
+        SpellExplosion explosion = Acquire();
+        explosion.startColor = from;
+        explosion.endColor = to;
         explosion.Play(position, radius, duration);
     }
 
@@ -69,7 +83,7 @@ public sealed class SpellExplosion : MonoBehaviour
         duration = Mathf.Max(0.05f, length);
         age = 0f;
         inUse = true;
-        sr.color = new Color(0.85f, 0.95f, 1f, 1f);
+        sr.color = startColor;
         gameObject.SetActive(true);
     }
 
@@ -87,7 +101,7 @@ public sealed class SpellExplosion : MonoBehaviour
         // Fast ease-out growth to the full radius, then a fade; colour runs from white-blue to violet.
         float grow = 1f - (1f - t) * (1f - t);
         transform.localScale = Vector3.one * (radius * Mathf.Lerp(0.2f, 1f, grow));
-        Color c = Color.Lerp(new Color(0.85f, 0.95f, 1f), new Color(0.55f, 0.3f, 1f), t);
+        Color c = Color.Lerp(startColor, endColor, t);
         c.a = t < 0.35f ? 1f : 1f - (t - 0.35f) / 0.65f;
         sr.color = c;
     }

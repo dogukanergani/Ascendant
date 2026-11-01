@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 642461c1f93145441872143ffe21c5d3, type: 3}
+  m_Name: Skill_Bow
+  m_EditorClassIdentifier: 
+  skillId: bow
+  displayName: Yay
+  icon: {fileID: 7344903880531102785, guid: bf88e70817e9aab4d829acb57ceada5f, type: 3}
+  cooldown: 0.35
+  staminaCost: 10
+  unlockedByDefault: 1
+  activationKey: 32
+  tierDamage:
+  - {x: 12, y: 16}
+  - {x: 26, y: 34}
+  - {x: 46, y: 56}
+  upgradeCosts: 050000000c000000
+  tierStaminaCost:
+  - 10
+  - 10
+  - 10
+  tierReachMultiplier: []
+  tierNotes:
+  - "H\u0131zl\u0131 tek hedef oku (R)"
+  - "Delici ok: en fazla 3 d\xFC\u015Fman\u0131 deler"
+  - "Bas\u0131l\u0131 tut ve b\u0131rak: ok ya\u011Fmuru, 8 ok, toplam 30 stamina"

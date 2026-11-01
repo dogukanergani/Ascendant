@@ -37,6 +37,8 @@ public sealed class StaffAttackSkill : SkillAbility
     PlayerInputReader input;
     PlayerAnimationDriver animationDriver;
     SkillManager manager;
+    ShieldSkill shield;
+    float parryBonus = 1f;
     int comboStep;
     int swingStep;
     float lastSwingStart = float.NegativeInfinity;
@@ -203,6 +205,9 @@ public sealed class StaffAttackSkill : SkillAbility
         comboStep = (swingStep + 1) % comboMultiplier.Length;
         hitThisSwing.Clear();
         landedThisSwing = false;
+        // Shield tier 3: the first swing after a parry hits for double.
+        shield ??= GetComponent<ShieldSkill>();
+        parryBonus = shield != null ? shield.ConsumeParryBonus() : 1f;
         windowOpen = true;
         windowEnd = Time.time + hitWindow;
     }
@@ -233,7 +238,7 @@ public sealed class StaffAttackSkill : SkillAbility
             }
 
             hitThisSwing.Add(target);
-            DamageInfo info = DamageRoll.Roll(range, comboMultiplier[swingStep], swingDirection * knockback, DamageSource.Staff);
+            DamageInfo info = DamageRoll.Roll(range, comboMultiplier[swingStep] * parryBonus, swingDirection * knockback, DamageSource.Staff);
             if (target.Damage(info))
             {
                 landedThisSwing = true;

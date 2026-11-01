@@ -18,6 +18,8 @@ public sealed class Health : MonoBehaviour, IDamageable
     // Raised for every Health after a hit lands; lets world-space feedback (damage numbers) listen in one place.
     public static event Action<Health, DamageInfo> AnyDamaged;
     public event Action Died;
+    // Lets a defensive skill (the shield) swallow a hit before it lands; return true to block it completely.
+    public Func<DamageInfo, bool> Interceptor { get; set; }
 
     public int Current => current;
     public int Max => maxHearts * partsPerHeart;
@@ -45,6 +47,11 @@ public sealed class Health : MonoBehaviour, IDamageable
     {
         int amount = info.Amount;
         if (IsDead || amount <= 0 || IsInvulnerable)
+        {
+            return false;
+        }
+
+        if (Interceptor != null && Interceptor(info))
         {
             return false;
         }

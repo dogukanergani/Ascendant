@@ -9,18 +9,30 @@ public readonly struct DamageInfo
     public readonly Vector2 Knockback;
     public readonly bool IsCritical;
     public readonly DamageSource Source;
+    // Where the hit came from and who dealt it; only melee hits on the player fill these (the shield uses them).
+    public readonly Vector2 Origin;
+    public readonly bool HasOrigin;
+    public readonly EnemyAI Attacker;
 
     public DamageInfo(int amount, Vector2 knockback, bool isCritical = false, DamageSource source = DamageSource.Other)
+        : this(amount, knockback, isCritical, source, default, false, null)
+    {
+    }
+
+    public DamageInfo(int amount, Vector2 knockback, bool isCritical, DamageSource source, Vector2 origin, bool hasOrigin, EnemyAI attacker)
     {
         Amount = amount;
         Knockback = knockback;
         IsCritical = isCritical;
         Source = source;
+        Origin = origin;
+        HasOrigin = hasOrigin;
+        Attacker = attacker;
     }
 
     public DamageInfo WithKnockback(Vector2 knockback)
     {
-        return new DamageInfo(Amount, knockback, IsCritical, Source);
+        return new DamageInfo(Amount, knockback, IsCritical, Source, Origin, HasOrigin, Attacker);
     }
 }
 
