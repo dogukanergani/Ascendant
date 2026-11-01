@@ -15,9 +15,9 @@ TagManager:
   - 
   - GrappleAnchor
   - Enemy
-  - 
-  - 
-  - 
+  - Player
+  - Wall
+  - Hazard
   - 
   - 
   - 

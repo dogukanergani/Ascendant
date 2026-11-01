@@ -1,12 +1,11 @@
 using UnityEngine;
 
+// 8-directional movement with acceleration and deceleration. Kept under the old class name so scene references survive.
 public sealed class RunAbility : MonoBehaviour, IPlayerAbility
 {
-    [SerializeField] float maxSpeed = 8f;
-    [SerializeField] float groundAcceleration = 80f;
-    [SerializeField] float groundDeceleration = 100f;
-    [SerializeField] float airAcceleration = 40f;
-    [SerializeField] float airDeceleration = 30f;
+    [SerializeField] float maxSpeed = 6f;
+    [SerializeField] float acceleration = 70f;
+    [SerializeField] float deceleration = 90f;
 
     PlayerController2D player;
 
@@ -25,21 +24,8 @@ public sealed class RunAbility : MonoBehaviour, IPlayerAbility
             return;
         }
 
-        float target = player.MoveInput * maxSpeed;
-        bool hasInput = Mathf.Abs(target) > 0.01f;
-
-        float rate;
-        if (player.IsGrounded)
-        {
-            rate = hasInput ? groundAcceleration : groundDeceleration;
-        }
-        else
-        {
-            rate = hasInput ? airAcceleration : airDeceleration;
-        }
-
-        Vector2 velocity = player.Velocity;
-        velocity.x = Mathf.MoveTowards(velocity.x, target, rate * deltaTime);
-        player.Velocity = velocity;
+        Vector2 target = player.MoveInput * maxSpeed;
+        float rate = target.sqrMagnitude > 0.0001f ? acceleration : deceleration;
+        player.Velocity = Vector2.MoveTowards(player.Velocity, target, rate * deltaTime);
     }
 }

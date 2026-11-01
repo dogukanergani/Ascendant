@@ -10,6 +10,8 @@ public sealed class GrappleSkill : SkillAbility
     // Anything on these layers between the player and an anchor blocks the hook.
     [SerializeField] LayerMask sightBlockerMask = ~0;
     [SerializeField] float range = 8f;
+    // Half-angle of the cone in front of the player in which anchors can be hooked.
+    [SerializeField] float aimHalfAngle = 45f;
     [SerializeField] float pullSpeed = 16f;
     [SerializeField] float arriveDistance = 0.6f;
     [SerializeField] float maxDuration = 1.2f;
@@ -39,7 +41,7 @@ public sealed class GrappleSkill : SkillAbility
     SpriteRenderer hookTip;
     Sprite ringSprite;
 
-    // Ticks after Run (0), Jump (10) and Wall (20) so the pull overrides them; Dash (30) can still interrupt it.
+    // Ticks after Move (0) so the pull overrides it; Dash (30) can still interrupt it.
     public override int Priority => 25;
 
     public bool IsHooked => hooked;
@@ -105,10 +107,10 @@ public sealed class GrappleSkill : SkillAbility
         if (timeLeft <= 0f || toAnchor.magnitude <= arriveDistance)
         {
             hooked = false;
+            Player.Velocity = Vector2.zero;
             return;
         }
 
-        Player.Body.gravityScale = 0f;
         Player.Velocity = toAnchor.normalized * pullSpeed;
     }
 
@@ -131,12 +133,19 @@ public sealed class GrappleSkill : SkillAbility
     {
         Vector2 origin = Player.Body.position;
         Collider2D[] hits = Physics2D.OverlapCircleAll(origin, range, anchorMask);
+        float minDot = Mathf.Cos(aimHalfAngle * Mathf.Deg2Rad);
 
         float bestDistance = float.PositiveInfinity;
         bestPoint = origin;
         for (int i = 0; i < hits.Length; i++)
         {
             Vector2 point = hits[i].ClosestPoint(origin);
+            Vector2 toPoint = point - origin;
+            if (toPoint.sqrMagnitude > 0.0001f && Vector2.Dot(toPoint.normalized, Player.Facing) < minDot)
+            {
+                continue;
+            }
+
             if (!HasLineOfSight(origin, point, hits[i]))
             {
                 continue;
@@ -195,7 +204,7 @@ public sealed class GrappleSkill : SkillAbility
 
     void HideVisuals()
     {
-        if (rope != null)
+        if (rope != null && hookTip != null)
         {
             HideRope();
             SetRingsActive(0);
@@ -231,6 +240,11 @@ public sealed class GrappleSkill : SkillAbility
 
         for (int i = 0; i < rings.Count; i++)
         {
+            if (rings[i] == null)
+            {
+                continue;
+            }
+
             rings[i].gameObject.SetActive(i < count);
         }
     }

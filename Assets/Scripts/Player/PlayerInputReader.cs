@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -9,11 +8,8 @@ public sealed class PlayerInputReader : MonoBehaviour
 
     InputActionMap map;
     InputAction moveAction;
-    InputAction jumpAction;
 
     public Vector2 Move => moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
-    public bool JumpHeld { get; private set; }
-    public event Action JumpPressed;
 
 #if UNITY_EDITOR
     void Reset()
@@ -33,34 +29,11 @@ public sealed class PlayerInputReader : MonoBehaviour
 
         map = actions.FindActionMap(actionMapName, true);
         moveAction = map.FindAction("Move", true);
-        jumpAction = map.FindAction("Jump", true);
-
-        jumpAction.performed += OnJumpPerformed;
-        jumpAction.canceled += OnJumpCanceled;
         map.Enable();
     }
 
     void OnDisable()
     {
-        if (map == null)
-        {
-            return;
-        }
-
-        jumpAction.performed -= OnJumpPerformed;
-        jumpAction.canceled -= OnJumpCanceled;
-        map.Disable();
-        JumpHeld = false;
-    }
-
-    void OnJumpPerformed(InputAction.CallbackContext context)
-    {
-        JumpHeld = true;
-        JumpPressed?.Invoke();
-    }
-
-    void OnJumpCanceled(InputAction.CallbackContext context)
-    {
-        JumpHeld = false;
+        map?.Disable();
     }
 }

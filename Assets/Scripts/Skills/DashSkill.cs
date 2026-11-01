@@ -1,15 +1,20 @@
+using System;
 using UnityEngine;
 
 public sealed class DashSkill : SkillAbility
 {
-    [SerializeField] float dashSpeed = 18f;
+    [SerializeField] float dashSpeed = 16f;
     [SerializeField] float dashDuration = 0.15f;
+    // Invulnerability outlasts the dash slightly so the exit frames are safe too.
+    [SerializeField] float invulnerabilityPadding = 0.05f;
 
     float dashTimeLeft;
-    int dashDirection;
+    Vector2 dashDirection;
 
-    // Ticks after Run (0), Jump (10) and Wall (20) so dash velocity and zero gravity win for the tick.
+    // Ticks after Move (0) and Grapple (25) so dash velocity wins for the tick.
     public override int Priority => 30;
+
+    public event Action Dashed;
 
     public bool IsDashing => dashTimeLeft > 0f;
 
@@ -25,8 +30,11 @@ public sealed class DashSkill : SkillAbility
             return false;
         }
 
-        dashDirection = Player.FacingDirection;
+        Vector2 input = Player.MoveInput;
+        dashDirection = input.sqrMagnitude > 0.01f ? input.normalized : Player.Facing;
         dashTimeLeft = dashDuration;
+        Player.GrantInvulnerability(dashDuration + invulnerabilityPadding);
+        Dashed?.Invoke();
         return true;
     }
 
@@ -38,7 +46,6 @@ public sealed class DashSkill : SkillAbility
         }
 
         dashTimeLeft -= deltaTime;
-        Player.Body.gravityScale = 0f;
-        Player.Velocity = new Vector2(dashDirection * dashSpeed, 0f);
+        Player.Velocity = dashDirection * dashSpeed;
     }
 }

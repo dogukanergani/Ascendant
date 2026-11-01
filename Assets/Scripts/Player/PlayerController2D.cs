@@ -1,24 +1,23 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(PlayerInputReader))]
 public sealed class PlayerController2D : MonoBehaviour
 {
-    [SerializeField] LayerMask solidMask = ~0;
-    [SerializeField] float sensorSkin = 0.02f;
-    [SerializeField] float groundSensorDepth = 0.1f;
-    [SerializeField] float wallSensorDepth = 0.08f;
+    [SerializeField] float hurtInvulnerability = 0.6f;
+    [SerializeField] float hurtKnockbackSpeed = 8f;
+    [SerializeField] float hurtInputLock = 0.15f;
 
     readonly List<IPlayerAbility> abilities = new();
-    readonly List<Collider2D> hits = new();
 
     Rigidbody2D body;
-    Collider2D col;
     PlayerInputReader input;
-    ContactFilter2D solidFilter;
 
-    float jumpRequestTime = float.NegativeInfinity;
     float inputLockUntil = float.NegativeInfinity;
+    float invulnerableUntil = float.NegativeInfinity;
+
+    public event Action Hurt;
 
     public Rigidbody2D Body => body;
     public Vector2 Velocity
@@ -27,28 +26,21 @@ public sealed class PlayerController2D : MonoBehaviour
         set => body.linearVelocity = value;
     }
 
-    public float MoveInput { get; private set; }
-    public bool JumpHeld => input.JumpHeld;
-    public bool IsGrounded { get; private set; }
-    public bool IsTouchingWall { get; private set; }
-    public int WallDirection { get; private set; }
-    public int LastWallDirection { get; private set; }
-    public int FacingDirection { get; private set; } = 1;
+    // Raw move input, length clamped to 1 so diagonals are not faster.
+    public Vector2 MoveInput { get; private set; }
+    // Last movement direction snapped to one of the four sprite directions (right, left, up, down).
+    public Vector2 Facing { get; private set; } = Vector2.down;
     public bool CanControl => Time.time >= inputLockUntil;
-
-    public float LastGroundedTime { get; private set; } = float.NegativeInfinity;
-    public float LastWallTime { get; private set; } = float.NegativeInfinity;
+    public bool IsInvulnerable => Time.time < invulnerableUntil;
 
     void Awake()
     {
         body = GetComponent<Rigidbody2D>();
-        col = GetComponent<Collider2D>();
         input = GetComponent<PlayerInputReader>();
 
+        body.gravityScale = 0f;
         body.freezeRotation = true;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-
-        solidFilter = new ContactFilter2D { useLayerMask = true, layerMask = solidMask, useTriggers = false };
 
         foreach (IPlayerAbility ability in GetComponents<IPlayerAbility>())
         {
@@ -56,25 +48,10 @@ public sealed class PlayerController2D : MonoBehaviour
         }
     }
 
-    void OnEnable()
-    {
-        input.JumpPressed += RequestJump;
-    }
-
-    void OnDisable()
-    {
-        input.JumpPressed -= RequestJump;
-    }
-
     void FixedUpdate()
     {
-        MoveInput = input.Move.x;
-        if (Mathf.Abs(MoveInput) > 0.01f)
-        {
-            FacingDirection = MoveInput > 0f ? 1 : -1;
-        }
-
-        UpdateSensors();
+        MoveInput = Vector2.ClampMagnitude(input.Move, 1f);
+        UpdateFacing(MoveInput);
 
         float dt = Time.fixedDeltaTime;
         for (int i = 0; i < abilities.Count; i++)
@@ -91,44 +68,31 @@ public sealed class PlayerController2D : MonoBehaviour
         AddAbility(ability);
     }
 
-    public void RequestJump()
-    {
-        jumpRequestTime = Time.time;
-    }
-
-    public bool HasJumpRequest(float window)
-    {
-        return Time.time - jumpRequestTime <= window;
-    }
-
-    public void ClearJumpRequest()
-    {
-        jumpRequestTime = float.NegativeInfinity;
-    }
-
-    public bool GroundedWithin(float window)
-    {
-        return Time.time - LastGroundedTime <= window;
-    }
-
-    public bool WallContactWithin(float window)
-    {
-        return Time.time - LastWallTime <= window;
-    }
-
-    public void ForgetGround()
-    {
-        LastGroundedTime = float.NegativeInfinity;
-    }
-
-    public void ForgetWall()
-    {
-        LastWallTime = float.NegativeInfinity;
-    }
-
     public void LockInput(float duration)
     {
         inputLockUntil = Time.time + duration;
+    }
+
+    public void GrantInvulnerability(float duration)
+    {
+        invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + duration);
+    }
+
+    // Returns false when the hit was ignored because the player is invulnerable.
+    public bool TakeHit(Vector2 sourcePosition)
+    {
+        if (IsInvulnerable)
+        {
+            return false;
+        }
+
+        GrantInvulnerability(hurtInvulnerability);
+        LockInput(hurtInputLock);
+
+        Vector2 away = body.position - sourcePosition;
+        Velocity = (away.sqrMagnitude > 0.0001f ? away.normalized : -Facing) * hurtKnockbackSpeed;
+        Hurt?.Invoke();
+        return true;
     }
 
     void AddAbility(IPlayerAbility ability)
@@ -138,61 +102,26 @@ public sealed class PlayerController2D : MonoBehaviour
         abilities.Sort((a, b) => a.Priority.CompareTo(b.Priority));
     }
 
-    void UpdateSensors()
+    void UpdateFacing(Vector2 move)
     {
-        Bounds b = col.bounds;
-
-        IsGrounded = Probe(
-            new Vector2(b.center.x, b.min.y - groundSensorDepth * 0.5f + sensorSkin),
-            new Vector2(b.size.x * 0.9f, groundSensorDepth));
-
-        bool leftWall = Probe(
-            new Vector2(b.min.x - wallSensorDepth * 0.5f + sensorSkin, b.center.y),
-            new Vector2(wallSensorDepth, b.size.y * 0.7f));
-
-        bool rightWall = Probe(
-            new Vector2(b.max.x + wallSensorDepth * 0.5f - sensorSkin, b.center.y),
-            new Vector2(wallSensorDepth, b.size.y * 0.7f));
-
-        IsTouchingWall = leftWall || rightWall;
-        if (leftWall && rightWall)
+        float ax = Mathf.Abs(move.x);
+        float ay = Mathf.Abs(move.y);
+        if (ax < 0.01f && ay < 0.01f)
         {
-            WallDirection = MoveInput >= 0f ? 1 : -1;
+            return;
         }
-        else if (leftWall || rightWall)
+
+        bool horizontal;
+        if (Mathf.Abs(ax - ay) < 0.01f)
         {
-            WallDirection = leftWall ? -1 : 1;
+            // Pure diagonal: keep the current facing axis.
+            horizontal = Mathf.Abs(Facing.x) > 0f;
         }
         else
         {
-            WallDirection = 0;
+            horizontal = ax > ay;
         }
 
-        // Only refresh coyote timers while not rising, so a jump cannot re-arm itself on the same frame.
-        if (IsGrounded && body.linearVelocity.y <= 0.01f)
-        {
-            LastGroundedTime = Time.time;
-        }
-
-        if (IsTouchingWall && !IsGrounded && CanControl)
-        {
-            LastWallTime = Time.time;
-            LastWallDirection = WallDirection;
-        }
-    }
-
-    bool Probe(Vector2 center, Vector2 size)
-    {
-        hits.Clear();
-        int count = Physics2D.OverlapBox(center, size, 0f, solidFilter, hits);
-        for (int i = 0; i < count; i++)
-        {
-            if (hits[i].attachedRigidbody != body)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        Facing = horizontal ? new Vector2(Mathf.Sign(move.x), 0f) : new Vector2(0f, Mathf.Sign(move.y));
     }
 }

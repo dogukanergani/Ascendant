@@ -1,24 +1,33 @@
+using System.Collections.Generic;
 using UnityEngine;
 
+// Drives the Animator on the Visual child. Parameters (all optional, missing ones are skipped silently):
+// MoveX/MoveY (float, facing direction), IsMoving (bool), Attack/Dash/Hurt (trigger).
 [RequireComponent(typeof(PlayerController2D))]
 public sealed class PlayerAnimationDriver : MonoBehaviour
 {
-    static readonly int IsRunningHash = Animator.StringToHash("IsRunning");
-    static readonly int JumpHash = Animator.StringToHash("Jump");
+    static readonly int MoveXHash = Animator.StringToHash("MoveX");
+    static readonly int MoveYHash = Animator.StringToHash("MoveY");
+    static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
     static readonly int AttackHash = Animator.StringToHash("Attack");
+    static readonly int DashHash = Animator.StringToHash("Dash");
+    static readonly int HurtHash = Animator.StringToHash("Hurt");
 
     [SerializeField] Animator animator;
     [SerializeField] SpriteRenderer spriteRenderer;
-    [SerializeField] float runSpeedThreshold = 0.5f;
-    // A single-step upward velocity gain larger than this counts as a jump (ground, wall or double jump).
-    [SerializeField] float jumpImpulseThreshold = 4f;
+    [SerializeField] float movingSpeedThreshold = 0.3f;
+    // Art is drawn facing left only; right is the mirrored sprite.
+    [SerializeField] bool mirrorWhenFacingRight = true;
+
+    readonly HashSet<int> parameters = new();
 
     PlayerController2D player;
-    float previousVy;
+    DashSkill dash;
 
     void Awake()
     {
         player = GetComponent<PlayerController2D>();
+        dash = GetComponent<DashSkill>();
         if (animator == null)
         {
             animator = GetComponentInChildren<Animator>();
@@ -28,31 +37,83 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
         {
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
+
+        CacheParameters();
     }
 
-    void FixedUpdate()
+    void OnEnable()
     {
-        float vy = player.Velocity.y;
-        if (vy - previousVy > jumpImpulseThreshold)
+        player.Hurt += OnHurt;
+        if (dash != null)
         {
-            animator.SetTrigger(JumpHash);
+            dash.Dashed += OnDashed;
         }
+    }
 
-        previousVy = vy;
+    void OnDisable()
+    {
+        player.Hurt -= OnHurt;
+        if (dash != null)
+        {
+            dash.Dashed -= OnDashed;
+        }
     }
 
     void Update()
     {
-        bool running = player.IsGrounded
-            && Mathf.Abs(player.MoveInput) > 0.01f
-            && Mathf.Abs(player.Velocity.x) > runSpeedThreshold;
-        animator.SetBool(IsRunningHash, running);
-        spriteRenderer.flipX = player.FacingDirection < 0;
+        Vector2 facing = player.Facing;
+        SetFloat(MoveXHash, facing.x);
+        SetFloat(MoveYHash, facing.y);
+        SetBool(IsMovingHash, player.Velocity.magnitude > movingSpeedThreshold);
+
+        if (spriteRenderer != null && mirrorWhenFacingRight && Mathf.Abs(facing.x) > 0f)
+        {
+            spriteRenderer.flipX = facing.x > 0f;
+        }
     }
 
     // Called by the future sword ability.
     public void PlayAttack()
     {
-        animator.SetTrigger(AttackHash);
+        SetTrigger(AttackHash);
+    }
+
+    void OnDashed()
+    {
+        SetTrigger(DashHash);
+    }
+
+    void OnHurt()
+    {
+        SetTrigger(HurtHash);
+    }
+
+    void CacheParameters()
+    {
+        parameters.Clear();
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            parameters.Add(parameter.nameHash);
+        }
+    }
+
+    void SetFloat(int hash, float value)
+    {
+        if (parameters.Contains(hash)) animator.SetFloat(hash, value);
+    }
+
+    void SetBool(int hash, bool value)
+    {
+        if (parameters.Contains(hash)) animator.SetBool(hash, value);
+    }
+
+    void SetTrigger(int hash)
+    {
+        if (parameters.Contains(hash)) animator.SetTrigger(hash);
     }
 }
