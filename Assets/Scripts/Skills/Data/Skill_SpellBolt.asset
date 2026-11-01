@@ -23,3 +23,10 @@ MonoBehaviour:
   - {x: 8, y: 12}
   - {x: 18, y: 24}
   - {x: 36, y: 44}
+  upgradeCosts: 050000000c000000
+  tierStaminaCost: []
+  tierReachMultiplier: []
+  tierNotes:
+  - "Alan yar\u0131\xE7ap\u0131 1.5"
+  - "Alan yar\u0131\xE7ap\u0131 2.0"
+  - "Alan yar\u0131\xE7ap\u0131 2.6"

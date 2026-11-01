@@ -144,7 +144,7 @@ public sealed class StaffAttackSkill : SkillAbility
             if (Time.time >= windowEnd)
             {
                 windowOpen = false;
-                if (landedThisSwing && hitStopTime > 0f)
+                if (landedThisSwing && hitStopTime > 0f && !SkillTreePanel.IsOpen)
                 {
                     Time.timeScale = 0f;
                     hitStopEnd = Time.unscaledTime + hitStopTime;
@@ -247,7 +247,8 @@ public sealed class StaffAttackSkill : SkillAbility
         if (hitStopEnd > 0f)
         {
             hitStopEnd = 0f;
-            Time.timeScale = 1f;
+            // The skill tree pauses the game itself; a hit stop ending must not unpause it.
+            Time.timeScale = SkillTreePanel.IsOpen ? 0f : 1f;
         }
     }
 

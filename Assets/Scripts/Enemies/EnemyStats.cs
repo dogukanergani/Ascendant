@@ -8,6 +8,10 @@ public sealed class EnemyStats : ScriptableObject
     // Hit points. Player skill damage is rolled in the same scale (see SkillDefinition tier damage).
     public int maxHealth = 20;
 
+    [Header("Reward")]
+    // Skill points granted to the player when this enemy dies.
+    public int skillPointReward = 1;
+
     [Header("Movement")]
     public float patrolSpeed = 1f;
     public float chaseSpeed = 2f;

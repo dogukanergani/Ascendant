@@ -18,6 +18,7 @@ public sealed class SkillManager : MonoBehaviour
 
     public event Action<SkillDefinition, bool> UnlockChanged;
     public event Action<SkillDefinition> Used;
+    public event Action<SkillDefinition, int> TierChanged;
 
     public IReadOnlyList<SkillDefinition> Catalog => catalog;
 
@@ -111,7 +112,37 @@ public sealed class SkillManager : MonoBehaviour
         {
             tiers[skillId] = Mathf.Clamp(tier, 1, MaxTier);
             Save();
+            TierChanged?.Invoke(definitions[skillId], tiers[skillId]);
         }
+    }
+
+    // Skill points needed for the next tier; -1 if the skill is unknown or already at the top tier.
+    public int GetUpgradeCost(string skillId)
+    {
+        if (!definitions.TryGetValue(skillId, out SkillDefinition definition) || GetTier(skillId) >= MaxTier)
+        {
+            return -1;
+        }
+
+        return definition.GetUpgradeCost(GetTier(skillId));
+    }
+
+    public bool CanUpgrade(string skillId)
+    {
+        int cost = GetUpgradeCost(skillId);
+        return cost >= 0 && IsUnlocked(skillId) && SkillPointService.Balance >= cost;
+    }
+
+    // Spends the points, raises the tier and saves. False if locked, maxed or too few points.
+    public bool TryUpgrade(string skillId)
+    {
+        if (!CanUpgrade(skillId) || !SkillPointService.TrySpend(GetUpgradeCost(skillId)))
+        {
+            return false;
+        }
+
+        SetTier(skillId, GetTier(skillId) + 1);
+        return true;
     }
 
     public bool IsUnlocked(string skillId)
@@ -153,10 +184,11 @@ public sealed class SkillManager : MonoBehaviour
         }
 
         // Without enough stamina the skill is refused before it starts; the failed spend tells the HUD to react.
-        bool paid = stamina != null && definition.StaminaCost > 0f;
-        if (paid && !stamina.CanSpend(definition.StaminaCost))
+        float staminaCost = definition.GetStaminaCost(GetTier(skillId));
+        bool paid = stamina != null && staminaCost > 0f;
+        if (paid && !stamina.CanSpend(staminaCost))
         {
-            stamina.TrySpend(definition.StaminaCost);
+            stamina.TrySpend(staminaCost);
             return false;
         }
 
@@ -167,7 +199,7 @@ public sealed class SkillManager : MonoBehaviour
 
         if (paid)
         {
-            stamina.TrySpend(definition.StaminaCost);
+            stamina.TrySpend(staminaCost);
         }
 
         cooldownEnds[skillId] = Time.time + definition.Cooldown;

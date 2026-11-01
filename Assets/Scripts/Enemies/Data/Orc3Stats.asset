@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Orc3Stats
   m_EditorClassIdentifier: 
   maxHealth: 40
+  skillPointReward: 2
   patrolSpeed: 0.6
   chaseSpeed: 2.4
   patrolRadius: 2.5

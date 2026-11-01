@@ -19,6 +19,8 @@ public sealed class EnemyAI : MonoBehaviour
     const float SteerStep = 25f;
 
     [SerializeField] EnemyStats stats;
+
+    public EnemyStats Stats => stats;
     [SerializeField] LayerMask wallMask = 1 << 11;
     [SerializeField] LayerMask enemyMask = 1 << 9;
     [SerializeField] float bodyRadius = 0.3f;

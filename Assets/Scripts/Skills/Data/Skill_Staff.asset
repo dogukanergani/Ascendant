@@ -23,3 +23,7 @@ MonoBehaviour:
   - {x: 9, y: 13}
   - {x: 22, y: 28}
   - {x: 40, y: 48}
+  upgradeCosts: 050000000c000000
+  tierStaminaCost: []
+  tierReachMultiplier: []
+  tierNotes: []

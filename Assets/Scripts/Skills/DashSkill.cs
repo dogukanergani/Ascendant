@@ -8,7 +8,9 @@ public sealed class DashSkill : SkillAbility
     // Invulnerability outlasts the dash slightly so the exit frames are safe too.
     [SerializeField] float invulnerabilityPadding = 0.05f;
 
+    SkillManager manager;
     float dashTimeLeft;
+    float currentSpeed;
     Vector2 dashDirection;
 
     // Ticks after Move (0) so dash velocity wins for the tick.
@@ -33,6 +35,14 @@ public sealed class DashSkill : SkillAbility
         Vector2 input = Player.MoveInput;
         dashDirection = input.sqrMagnitude > 0.01f ? input.normalized : Player.Facing;
         dashTimeLeft = dashDuration;
+        if (manager == null)
+        {
+            manager = FindFirstObjectByType<SkillManager>();
+        }
+
+        // Higher tiers dash farther: same duration, more speed.
+        int tier = manager != null && Definition != null ? manager.GetTier(Definition.SkillId) : 1;
+        currentSpeed = dashSpeed * (Definition != null ? Definition.GetReachMultiplier(tier) : 1f);
         Player.GrantInvulnerability(dashDuration + invulnerabilityPadding);
         Dashed?.Invoke();
         return true;
@@ -46,6 +56,6 @@ public sealed class DashSkill : SkillAbility
         }
 
         dashTimeLeft -= deltaTime;
-        Player.Velocity = dashDirection * dashSpeed;
+        Player.Velocity = dashDirection * currentSpeed;
     }
 }
