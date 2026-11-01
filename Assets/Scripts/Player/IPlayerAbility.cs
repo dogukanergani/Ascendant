@@ -1,6 +1,6 @@
 public interface IPlayerAbility
 {
-    // Lower values tick first. Move = 0, Grapple = 25, Dash = 30; skills can pick any value.
+    // Lower values tick first. Move = 0, Dash = 30, SpellBolt = 40; skills can pick any value.
     int Priority { get; }
 
     bool IsActive { get; }

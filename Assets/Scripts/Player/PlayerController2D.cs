@@ -12,6 +12,7 @@ public sealed class PlayerController2D : MonoBehaviour
     readonly List<IPlayerAbility> abilities = new();
 
     Rigidbody2D body;
+    Health health;
     PlayerInputReader input;
 
     float inputLockUntil = float.NegativeInfinity;
@@ -31,12 +32,13 @@ public sealed class PlayerController2D : MonoBehaviour
     // Last movement direction snapped to one of the four sprite directions (right, left, up, down).
     public Vector2 Facing { get; private set; } = Vector2.down;
     public bool CanControl => Time.time >= inputLockUntil;
-    public bool IsInvulnerable => Time.time < invulnerableUntil;
+    public bool IsInvulnerable => health != null ? health.IsInvulnerable : Time.time < invulnerableUntil;
 
     void Awake()
     {
         body = GetComponent<Rigidbody2D>();
         input = GetComponent<PlayerInputReader>();
+        health = GetComponent<Health>();
 
         body.gravityScale = 0f;
         body.freezeRotation = true;
@@ -73,26 +75,62 @@ public sealed class PlayerController2D : MonoBehaviour
         inputLockUntil = Time.time + duration;
     }
 
+    void OnEnable()
+    {
+        if (health != null)
+        {
+            health.Damaged += OnDamaged;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (health != null)
+        {
+            health.Damaged -= OnDamaged;
+        }
+    }
+
     public void GrantInvulnerability(float duration)
     {
         invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + duration);
+        if (health != null)
+        {
+            health.GrantInvulnerability(duration);
+        }
     }
 
     // Returns false when the hit was ignored because the player is invulnerable.
-    public bool TakeHit(Vector2 sourcePosition)
+    // With a Health component the hit goes through it and its Damaged event applies the knockback.
+    public bool TakeHit(Vector2 sourcePosition, int damage = 1)
     {
         if (IsInvulnerable)
         {
             return false;
         }
 
-        GrantInvulnerability(hurtInvulnerability);
-        LockInput(hurtInputLock);
-
         Vector2 away = body.position - sourcePosition;
-        Velocity = (away.sqrMagnitude > 0.0001f ? away.normalized : -Facing) * hurtKnockbackSpeed;
-        Hurt?.Invoke();
+        Vector2 knockback = (away.sqrMagnitude > 0.0001f ? away.normalized : -Facing) * hurtKnockbackSpeed;
+        if (health != null)
+        {
+            return health.Damage(damage, knockback);
+        }
+
+        GrantInvulnerability(hurtInvulnerability);
+        ApplyHurt(knockback);
         return true;
+    }
+
+    void OnDamaged(int amount, Vector2 knockback)
+    {
+        ApplyHurt(knockback);
+    }
+
+    void ApplyHurt(Vector2 knockback)
+    {
+        LockInput(hurtInputLock);
+        Velocity = knockback;
+        Hurt?.Invoke();
     }
 
     void AddAbility(IPlayerAbility ability)

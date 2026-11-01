@@ -21,7 +21,7 @@ public static class UIBuilder
     static readonly Color TextColor = new(0.95f, 0.95f, 0.9f, 1f);
 
     static TMP_FontAsset font;
-    static Sprite star, lockSprite, heartFull, heartEmpty, square;
+    static Sprite star, lockSprite, heartFull, heartHalf, heartEmpty, square;
 
     [MenuItem("Tools/UI/Build All")]
     public static void BuildAll()
@@ -42,6 +42,23 @@ public static class UIBuilder
         AddToBuildSettings();
         AssetDatabase.SaveAssets();
         Debug.Log("UIBuilder: done.");
+    }
+
+    // Rebuilds only the HUD prefab (hearts, stamina bar), leaving the menu scenes untouched.
+    [MenuItem("Tools/UI/Rebuild HUD")]
+    public static void RebuildHud()
+    {
+        Directory.CreateDirectory(SpriteDir);
+        font = CreateFont();
+        CreateSprites();
+
+        var scratch = BeginScene();
+        SkillSlotView slot = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/SkillSlot.prefab").GetComponent<SkillSlotView>();
+        BuildHudPrefab(slot);
+        EditorSceneManager.SetActiveScene(previousActive);
+        EditorSceneManager.CloseScene(scratch, true);
+        AssetDatabase.SaveAssets();
+        Debug.Log("UIBuilder: HUD rebuilt.");
     }
 
     // ---- assets ----
@@ -107,6 +124,40 @@ public static class UIBuilder
         };
         heartFull = MakeSprite("heart_full", heart, 8, new Color(0.9f, 0.2f, 0.25f));
         heartEmpty = MakeSprite("heart_empty", heart, 8, new Color(0.3f, 0.12f, 0.15f));
+        heartHalf = MakeHalfHeart(heart);
+    }
+
+    // Left half in the full colour, right half in the empty colour.
+    static Sprite MakeHalfHeart(string[] rows)
+    {
+        string path = $"{SpriteDir}/heart_half.png";
+        int width = rows[0].Length;
+        int height = rows.Length;
+        Color full = new(0.9f, 0.2f, 0.25f);
+        Color empty = new(0.3f, 0.12f, 0.15f);
+        Texture2D tex = new(width, height, TextureFormat.RGBA32, false);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                bool on = rows[height - 1 - y][x] == '#';
+                tex.SetPixel(x, y, on ? (x <= width / 2 ? full : empty) : Color.clear);
+            }
+        }
+
+        File.WriteAllBytes(path, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        AssetDatabase.ImportAsset(path);
+
+        TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(path);
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.spritePixelsPerUnit = 1;
+        importer.filterMode = FilterMode.Point;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.mipmapEnabled = false;
+        importer.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 
     static Sprite MakeSprite(string name, string[] rows, int size, Color? tint = null)
@@ -130,6 +181,7 @@ public static class UIBuilder
 
         TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(path);
         importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
         importer.spritePixelsPerUnit = 1;
         importer.filterMode = FilterMode.Point;
         importer.textureCompression = TextureImporterCompression.Uncompressed;
@@ -340,15 +392,27 @@ public static class UIBuilder
         hearts.spacing = 12;
         hearts.childControlWidth = hearts.childControlHeight = false;
         hearts.childForceExpandWidth = hearts.childForceExpandHeight = false;
-        Image[] heartImages = new Image[3];
+        Image[] heartImages = new Image[5];
         for (int i = 0; i < heartImages.Length; i++)
         {
             heartImages[i] = NewImage($"Heart{i + 1}", heartRow, heartFull, Color.white);
             ((RectTransform)heartImages[i].transform).sizeDelta = new Vector2(64, 64);
         }
 
+        Image staminaFrame = NewImage("StaminaBar", root, square, Panel);
+        RectTransform staminaBar = staminaFrame.rectTransform;
+        Place(staminaBar, new Vector2(0, 1), new Vector2(0, 1), new Vector2(32, -108), new Vector2(380, 28));
+        Image staminaFill = NewImage("Fill", staminaBar, square, new Color(0.25f, 0.55f, 1f));
+        Stretch(staminaFill.rectTransform);
+        staminaFill.rectTransform.offsetMin = new Vector2(4, 4);
+        staminaFill.rectTransform.offsetMax = new Vector2(-4, -4);
+        staminaFill.type = Image.Type.Filled;
+        staminaFill.fillMethod = Image.FillMethod.Horizontal;
+        staminaFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+        staminaFill.fillAmount = 1f;
+
         RectTransform slotRow = NewRect("Skills", root);
-        Place(slotRow, new Vector2(0, 1), new Vector2(0, 1), new Vector2(32, -112), new Vector2(600, 88));
+        Place(slotRow, new Vector2(0, 1), new Vector2(0, 1), new Vector2(32, -152), new Vector2(600, 88));
         HorizontalLayoutGroup slots = slotRow.gameObject.AddComponent<HorizontalLayoutGroup>();
         slots.spacing = 12;
         slots.childControlWidth = slots.childControlHeight = false;
@@ -359,7 +423,8 @@ public static class UIBuilder
 
         LevelTimer timer = root.gameObject.AddComponent<LevelTimer>();
         HudController hud = root.gameObject.AddComponent<HudController>();
-        SetRefs(hud, ("hearts", heartImages), ("heartFull", heartFull), ("heartEmpty", heartEmpty), ("slotPrefab", slotPrefab),
+        SetRefs(hud, ("hearts", heartImages), ("heartFull", heartFull), ("heartHalf", heartHalf), ("heartEmpty", heartEmpty),
+            ("staminaFill", staminaFill), ("staminaBar", staminaBar), ("staminaFrame", staminaFrame), ("slotPrefab", slotPrefab),
             ("slotContainer", slotRow), ("timerText", timerText), ("timer", timer));
         SavePrefab<HudController>(root.gameObject, "HUD");
     }

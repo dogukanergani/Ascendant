@@ -11,7 +11,7 @@ public sealed class DashSkill : SkillAbility
     float dashTimeLeft;
     Vector2 dashDirection;
 
-    // Ticks after Move (0) and Grapple (25) so dash velocity wins for the tick.
+    // Ticks after Move (0) so dash velocity wins for the tick.
     public override int Priority => 30;
 
     public event Action Dashed;

@@ -16,5 +16,6 @@ MonoBehaviour:
   displayName: Dash
   icon: {fileID: 0}
   cooldown: 1
+  staminaCost: 20
   unlockedByDefault: 1
   activationKey: 51

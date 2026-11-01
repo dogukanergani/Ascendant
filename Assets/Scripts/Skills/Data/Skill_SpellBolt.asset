@@ -10,11 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642461c1f93145441872143ffe21c5d3, type: 3}
-  m_Name: Skill_Grapple
+  m_Name: Skill_SpellBolt
   m_EditorClassIdentifier: 
-  skillId: grapple
-  displayName: Kanca
-  icon: {fileID: 0}
-  cooldown: 2
+  skillId: spell_bolt
+  displayName: "B\xFCy\xFC Topu"
+  icon: {fileID: -4894608037367921518, guid: 54a4e83974fd709469aee1a22d5e685f, type: 3}
+  cooldown: 0.35
+  staminaCost: 15
   unlockedByDefault: 1
-  activationKey: 19
+  activationKey: 20

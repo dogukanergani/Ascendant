@@ -13,6 +13,8 @@ public sealed class SkillManager : MonoBehaviour
     readonly Dictionary<string, bool> unlocked = new();
     readonly Dictionary<string, float> cooldownEnds = new();
 
+    Stamina stamina;
+
     public event Action<SkillDefinition, bool> UnlockChanged;
     public event Action<SkillDefinition> Used;
 
@@ -26,6 +28,8 @@ public sealed class SkillManager : MonoBehaviour
             enabled = false;
             return;
         }
+
+        stamina = player.GetComponent<Stamina>();
 
         foreach (SkillAbility ability in player.GetComponents<SkillAbility>())
         {
@@ -124,9 +128,27 @@ public sealed class SkillManager : MonoBehaviour
             return false;
         }
 
-        if (!abilities.TryGetValue(skillId, out SkillAbility ability) || !ability.isActiveAndEnabled || !ability.TryActivate())
+        if (!abilities.TryGetValue(skillId, out SkillAbility ability) || !ability.isActiveAndEnabled)
         {
             return false;
+        }
+
+        // Without enough stamina the skill is refused before it starts; the failed spend tells the HUD to react.
+        bool paid = stamina != null && definition.StaminaCost > 0f;
+        if (paid && !stamina.CanSpend(definition.StaminaCost))
+        {
+            stamina.TrySpend(definition.StaminaCost);
+            return false;
+        }
+
+        if (!ability.TryActivate())
+        {
+            return false;
+        }
+
+        if (paid)
+        {
+            stamina.TrySpend(definition.StaminaCost);
         }
 
         cooldownEnds[skillId] = Time.time + definition.Cooldown;
