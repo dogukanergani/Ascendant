@@ -46,3 +46,7 @@ Desktop.ini
 # Third-party art (Craftpix free license: raw files must not be redistributed, repo is public)
 /Assets/Art/ThirdParty/
 /Assets/Art/ThirdParty.meta
+
+# Editor debug screenshots (may contain third-party art)
+/Assets/Screenshots/
+/Assets/Screenshots.meta
