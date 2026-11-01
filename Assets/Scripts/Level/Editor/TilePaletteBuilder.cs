@@ -287,6 +287,8 @@ public static class TilePaletteBuilder
         ("BrickStackA", "bricks_1", 0.45f, 0.8f, PropOrder), ("BrickStackB", "bricks_2", 0.45f, 0.8f, PropOrder), ("BrickStackC", "bricks_4", 0.45f, 0.8f, PropOrder),
         ("LogA", "bricks_7", 0.5f, 0.8f, PropOrder), ("LogB", "bricks_8", 0.5f, 0.8f, PropOrder), ("StumpB", "bricks_9", 0.6f, 0.6f, PropOrder),
         ("CoralBush", "greenery_3", 0.6f, 0f, PropOrder),
+        ("CoralA", "greenery_1", 0.6f, 0f, PropOrder), ("CoralB", "greenery_2", 0.55f, 0f, PropOrder),
+        ("CoralC", "greenery_4", 0.6f, 0f, PropOrder), ("CoralD", "greenery_5", 0.55f, 0f, PropOrder),
     };
 
     static void BuildProps()

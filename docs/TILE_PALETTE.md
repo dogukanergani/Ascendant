@@ -74,6 +74,16 @@ Level'ın doğusunda (x 41-56, y -1..12) küçük bir örnek oda boyalı: kalın
 
 ## 10. Boyanmış Level_01 ve `Tools/Level/Paint Level_01`
 
-Level_01 5 odayla koddan boyandı (`LevelPainter.cs`): zemin `Floor_Auto`, 3-4 hücre kalın `Wall_Auto` halkası (üstte kapak + 3 yüz satırı), halkanın arkasında koyu kaya dolgusu için **`Backdrop`** Tilemap'i (collider yok, sıra -92), meşale/sandık/fıçı/kasa, iki kemerli kapı süsü (`Walls/ArchBlockers` bunları kapatır). Menü komutu `Ground/Decor/Walls/WallTop/Backdrop/Props` içeriğini **siler** ve baştan boyar; elle değişiklik yaptıktan sonra çalıştırma. Oda/alkov/sütun yerleşimi `LevelPainter.cs` başındaki rect tablolarında. `Tools/Level/Render Level_01 Shots` Edit modunda `Assets/Screenshots/lvl_*.png` ve `game_*.png` render'larını üretir.
+Level_01 koddan boyandı (`LevelPainter.cs`), paketin tanıtım görselindeki dizilişle. Zemin olmayan her hücre kayadır ve parçasını kendisi seçer:
 
-Elle boyarken dış dolguyu `Backdrop`'a, duvarı `Walls`'a boya.
+* **Yüz**: altında 1-4 hücre içinde zemin olan kaya. `wall_1` sayfasının 4 satırı (üstte taş kapak, kaya, zemine oturan pürüzlü alt kenar); alçak duvarda aynı sayfanın daha az satırı. Paletteki `WL_1_*`.
+* **Sütun**: yanında zemin ya da yüz olan (veya köşeden zemine değen) kaya. 1 hücre genişlikte taş blok sütunu (`WL_3_*`); oda yanları, koridor kenarları, duvar uçları.
+* **Kapak şeridi**: hemen üstünde zemin olan kaya (yukarıdaki odadan görülen duvar): `WL_4_*`.
+* **Kaya üstü**: geri kalan her şey; koyu kaya (`BD_*`). Bu da `Walls`'ta ve collider'lı (dışarısı tek parça). 1-2 hücrelik ince boşluklar sütun / kapak taşıyla doldurulur.
+* Yüzün dibindeki zemin satırı gölgelidir (`CP_shadow_*`). Boss bölgesi kırmızı tonludur (`*_boss`).
+
+Odalar: alkovlar, yan duvardan çıkan 3 satırlık duvar parçaları (serbest ucunda sütun), alt duvardan yükselen 1 hücrelik sütunlar. Ayrıca üç kemerli kapı süsü (`Walls/ArchBlockers` kapatır), yüz diplerinde meşale ve mercan otu, köşelerde sandık/fıçı/kasa grupları, sütun prop'ları, boss odasında altın yığınları ve sancaklar var.
+
+Menü komutu `Ground/Decor/Walls/WallTop/Backdrop/Props` içeriğini **siler** ve baştan boyar; elle değişiklik yaptıktan sonra çalıştırma. Oda/alkov/çıkıntı yerleşimi ve prop grupları `LevelPainter.cs` başındaki tablolarda. `Tools/Level/Render Level_01 Shots` Edit modunda `Assets/Screenshots/lvl_*.png` (oda başına geniş plan) ve `game_*.png` (oyun kamerası boyutu) render'larını üretir.
+
+Elle aynı görünümü boyamak için: oda yanına `WL_3` sütunu, oda üstüne 4 satır `WL_1` (kapak en üstte), oda altına `WL_4` kapak şeridi, dışarıya `BD_*` koy. `Wall_Auto` bu ayrımı yapamaz (zemini görmez), hızlı taslak için kalır.

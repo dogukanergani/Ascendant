@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CP_shadow_0_boss
   m_EditorClassIdentifier: 
   m_Sprite: {fileID: -2083201322625240679, guid: 30da1594425c6154db2084252617e649, type: 3}
-  m_Color: {r: 0.84, g: 0.6048, b: 0.666, a: 1}
+  m_Color: {r: 0.7, g: 0.48960003, b: 0.5328, a: 1}
   m_Transform:
     e00: 1
     e01: 0
