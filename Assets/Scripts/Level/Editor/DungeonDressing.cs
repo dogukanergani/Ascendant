@@ -25,7 +25,7 @@ public static class DungeonDressing
     public const int DoorClosed = 5, DoorOpen = 6, Exit = 7, BossRow = 16;
 
     static readonly Color BossTint = new(1f, 0.72f, 0.74f, 1f);
-    static readonly Color ShadowTint = new(0.7f, 0.7f, 0.78f, 1f);
+    static readonly Color ShadowTint = new(0.84f, 0.84f, 0.9f, 1f);
 
     const int PropOrder = 10;      // same as the player and enemies; the project sorts by Y, so the pivot (feet) decides
     const int WallDecorOrder = -85; // above floor (-100) and walls (-90), below everything that moves
@@ -175,14 +175,17 @@ public static class DungeonDressing
                 MakeTile(FloorName(cell, true, boss), Sheet("land", cell), tint * ShadowTint);
             }
 
-            // Face: bricks of wall_8 (a plain fill); cap: the single stone block; side: the vertical block column.
+            // The pack's walls are 4x4 sheets: wall_1 row 0 is the thin stone cap with the first cobble courses under it,
+            // wall_8 rows 1-2 are plain cobble (the dark wall face), wall_3 is the 1-tile-wide block column used for side walls.
+            // All of them tile seamlessly over 4 cells, so they are picked by world x / y modulo 4.
+            string sfx = boss ? "_boss" : "";
             for (int col = 0; col < 4; col++)
             {
-                MakeTile($"CP_face_{col}{(boss ? "_boss" : "")}", Sheet("wall_8", 4 + col), tint);
-                MakeTile($"CP_side_{col}{(boss ? "_boss" : "")}", Sheet("wall_3", col), tint);
+                MakeTile($"CP_cap_{col}{sfx}", Sheet("wall_1", col), tint);
+                MakeTile($"CP_face_{col}{sfx}", Sheet("wall_8", 4 + col), tint);
+                MakeTile($"CP_face2_{col}{sfx}", Sheet("wall_8", 8 + col), tint);
+                MakeTile($"CP_side_{col}{sfx}", Sheet("wall_3", col), tint);
             }
-
-            MakeTile($"CP_cap{(boss ? "_boss" : "")}", Sheet("wall_9", 0), tint);
         }
 
         AssetDatabase.SaveAssets();
@@ -232,43 +235,85 @@ public static class DungeonDressing
             floorMap.SetTile(new Vector3Int(c.x, c.y, 0), TileByName(FloorName(cell, underWall, IsBossTheme(c))));
         }
 
-        var walls = new HashSet<Vector2Int>();
+        foreach (KeyValuePair<Vector2Int, string> kv in ClassifyWalls(floor))
+        {
+            wallMap.SetTile(new Vector3Int(kv.Key.x, kv.Key.y, 0), TileByName(kv.Value + (IsBossTheme(kv.Key) ? "_boss" : "")));
+        }
+    }
+
+    // Wall layout as in the pack's preview: a wall seen from the room below it is a cap (thin stone edge with cobble
+    // under it) on top of FaceRows rows of dark cobble face; left/right walls are a single block column that also runs
+    // up the sides of the face and down to the bottom wall (so corners are column cells); a wall below a room is one
+    // cap row. Priority: side column, top wall face, column continuation (corners), bottom cap.
+    public const int FaceRows = 2;
+
+    public static Dictionary<Vector2Int, string> ClassifyWalls(HashSet<Vector2Int> floor)
+    {
+        var result = new Dictionary<Vector2Int, string>();
+        var candidates = new HashSet<Vector2Int>();
         foreach (Vector2Int c in floor)
         {
-            for (int dx = -WallThickness; dx <= WallThickness; dx++)
+            for (int dx = -1; dx <= 1; dx++)
             {
-                for (int dy = -WallThickness; dy <= WallThickness; dy++)
+                for (int dy = -(FaceRows + 1); dy <= FaceRows + 1; dy++)
                 {
                     var n = new Vector2Int(c.x + dx, c.y + dy);
                     if (!floor.Contains(n))
                     {
-                        walls.Add(n);
+                        candidates.Add(n);
                     }
                 }
             }
         }
 
-        foreach (Vector2Int w in walls)
+        bool F(int x, int y) => floor.Contains(new Vector2Int(x, y));
+        foreach (Vector2Int w in candidates)
         {
-            bool floorBelow = floor.Contains(new Vector2Int(w.x, w.y - 1));
-            bool floorAbove = floor.Contains(new Vector2Int(w.x, w.y + 1));
-            bool floorSide = floor.Contains(new Vector2Int(w.x - 1, w.y)) || floor.Contains(new Vector2Int(w.x + 1, w.y));
-            string name;
-            if (floorBelow)
-            {
-                name = $"CP_face_{Mod4(w.x)}";
-            }
-            else if (!floorAbove && floorSide)
+            string name = null;
+            if (F(w.x - 1, w.y) || F(w.x + 1, w.y))
             {
                 name = $"CP_side_{Mod4(w.y)}";
             }
-            else
+
+            if (name == null)
             {
-                name = "CP_cap";
+                for (int k = 1; k <= FaceRows + 1 && name == null; k++)
+                {
+                    if (F(w.x, w.y - k))
+                    {
+                        name = k <= FaceRows ? $"CP_{(k == 1 ? "face2" : "face")}_{Mod4(w.x)}" : $"CP_cap_{Mod4(w.x)}";
+                        break;
+                    }
+
+                }
             }
 
-            wallMap.SetTile(new Vector3Int(w.x, w.y, 0), TileByName(name + (IsBossTheme(w) ? "_boss" : "")));
+            if (name == null)
+            {
+                bool columnNearby = F(w.x - 1, w.y + 1) || F(w.x + 1, w.y + 1);
+                for (int j = 1; j <= FaceRows + 1 && !columnNearby; j++)
+                {
+                    columnNearby = F(w.x - 1, w.y - j) || F(w.x + 1, w.y - j);
+                }
+
+                if (columnNearby)
+                {
+                    name = $"CP_side_{Mod4(w.y)}";
+                }
+            }
+
+            if (name == null && F(w.x, w.y + 1))
+            {
+                name = $"CP_cap_{Mod4(w.x)}";
+            }
+
+            if (name != null)
+            {
+                result[w] = name;
+            }
         }
+
+        return result;
     }
 
     // ---- generated sprites (doors, exit pad) ----
@@ -492,13 +537,11 @@ public static class DungeonDressing
         void Add(string prefab, int x, int y, bool fx = false, bool fy = false) => p.Add(new Placement(prefab, x, y, fx, fy));
 
         // Rest room (-6..5, -4..3): a camp. The bomb pocket (SW), lantern pocket (NE) and hidden heart (NW) stay clear.
-        Add("Torch", -3, 4); Add("Torch", 0, 4);
         Add("Stump", -1, 2); Add("Sign", 1, -3); Add("Chest", -1, -3);
         Add("Crate", 4, -3); Add("Barrel", 5, -3); Add("Planks", 4, -2); Add("Rubble", 2, 1);
         Add("Weeds", 5, -4, true, true); Add("CrackDecal", -2, 0);
 
         // Room 1 (10..27, -6..5)
-        foreach (int x in new[] { 12, 15, 22, 25 }) Add("Torch", x, 6);
         Add("Pillar", 14, -2); Add("Pillar", 23, -2); Add("Pillar", 14, 2); Add("Pillar", 23, 2);
         Add("Rubble", 19, -4); Add("Rubble", 12, -5); Add("Campfire", 25, -5); Add("Campfire", 20, 3); Add("Urn", 16, -4);
         Add("Barrel", 26, 4); Add("Barrel", 25, 4); Add("Crate", 11, 4); Add("Boulder", 17, 0);
@@ -506,7 +549,6 @@ public static class DungeonDressing
         Add("CrackDecal", 18, 0); Add("CrackDecal", 12, -2, true); Add("CrackDecal", 24, 3);
 
         // Room 2 (12..25, 10..19)
-        foreach (int x in new[] { 14, 17, 21, 24 }) Add("Torch", x, 20);
         Add("Pillar", 15, 13); Add("Pillar", 22, 13); Add("Pillar", 15, 17); Add("Pillar", 22, 17);
         Add("Rubble", 13, 11); Add("Barrel", 24, 11); Add("Barrel", 25, 11); Add("Crate", 13, 18);
         Add("Campfire", 20, 12); Add("Urn", 18, 18); Add("Boulder", 19, 15);
@@ -514,7 +556,6 @@ public static class DungeonDressing
         Add("CrackDecal", 18, 14); Add("CrackDecal", 21, 11, true);
 
         // Room 3 (-14..7, 8..21)
-        foreach (int x in new[] { -11, -8, 0, 3, 6 }) Add("Torch", x, 22);
         Add("Pillar", -10, 12); Add("Pillar", -10, 18); Add("Pillar", 2, 12); Add("Pillar", 2, 18);
         Add("Chest", -13, 20); Add("Barrel", -13, 9); Add("Barrel", -12, 9); Add("Crate", -13, 10); Add("Planks", -12, 10);
         Add("Rubble", -3, 9); Add("Rubble", 6, 20); Add("Campfire", -6, 14); Add("Urn", 0, 15); Add("Boulder", -4, 16);
@@ -523,7 +564,6 @@ public static class DungeonDressing
         Add("CrackDecal", -5, 12); Add("CrackDecal", -2, 18, true); Add("CrackDecal", 4, 15);
 
         // Boss room (-14..5, 26..41): braziers flank the approach, the exit pad at (-5..-4, 35..36) stays clear.
-        foreach (int x in new[] { -12, -8, -1, 3 }) Add("Torch", x, 42);
         Add("Stump", -12, 28); Add("Stump", 3, 28); Add("Stump", -12, 39); Add("Stump", 3, 39);
         Add("Pillar", -9, 31); Add("Pillar", -1, 31); Add("Pillar", -9, 37); Add("Pillar", -1, 37);
         Add("Campfire", -7, 28); Add("Campfire", 1, 34); Add("Urn", -11, 33); Add("Urn", 2, 38); Add("Urn", -3, 29);
@@ -570,6 +610,63 @@ public static class DungeonDressing
             var sr = go.GetComponent<SpriteRenderer>();
             sr.flipX = pl.flipX;
             sr.flipY = pl.flipY;
+        }
+
+        PlaceWallTorches(root, floorMap, wallMap);
+    }
+
+    // Torches hang on the dark face of every top wall, one every TorchSpacing cells along each run of face cells
+    // (face cells = wall cells with floor right below them), keeping a cell clear of the run ends.
+    const int TorchSpacing = 4;
+
+    static void PlaceWallTorches(Transform root, Tilemap floorMap, Tilemap wallMap)
+    {
+        if (floorMap == null || wallMap == null)
+        {
+            return;
+        }
+
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PropPrefabFolder}/Torch.prefab");
+        var rows = new SortedDictionary<int, List<int>>();
+        foreach (Vector3Int p in wallMap.cellBounds.allPositionsWithin)
+        {
+            if (wallMap.HasTile(p) && floorMap.HasTile(new Vector3Int(p.x, p.y - 1, 0)))
+            {
+                if (!rows.TryGetValue(p.y, out List<int> xs))
+                {
+                    rows[p.y] = xs = new List<int>();
+                }
+
+                xs.Add(p.x);
+            }
+        }
+
+        foreach (KeyValuePair<int, List<int>> row in rows)
+        {
+            row.Value.Sort();
+            int start = 0;
+            for (int i = 1; i <= row.Value.Count; i++)
+            {
+                if (i < row.Value.Count && row.Value[i] == row.Value[i - 1] + 1)
+                {
+                    continue;
+                }
+
+                // Run row.Value[start .. i-1]; centre the torches inside it.
+                int len = i - start;
+                if (len >= 4)
+                {
+                    int count = (len - 2) / TorchSpacing + 1;
+                    int first = row.Value[start] + (len - 1 - (count - 1) * TorchSpacing) / 2;
+                    for (int t = 0; t < count; t++)
+                    {
+                        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+                        go.transform.position = new Vector3(first + t * TorchSpacing + 0.5f, row.Key, 0f);
+                    }
+                }
+
+                start = i;
+            }
         }
     }
 }
