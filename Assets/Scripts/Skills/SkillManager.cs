@@ -7,6 +7,8 @@ public sealed class SkillManager : MonoBehaviour
 {
     [SerializeField] PlayerController2D player;
     [SerializeField] SkillDefinition[] catalog = Array.Empty<SkillDefinition>();
+    // Menu scenes (level select) have no player: the manager only holds tiers and unlocks for the skill tree.
+    [SerializeField] bool menuMode;
 
     readonly Dictionary<string, SkillDefinition> definitions = new();
     readonly Dictionary<string, SkillAbility> abilities = new();
@@ -24,20 +26,22 @@ public sealed class SkillManager : MonoBehaviour
 
     void Awake()
     {
-        if (player == null)
+        if (player == null && !menuMode)
         {
             Debug.LogError("SkillManager: PlayerController2D is not assigned.", this);
             enabled = false;
             return;
         }
 
-        stamina = player.GetComponent<Stamina>();
-
-        foreach (SkillAbility ability in player.GetComponents<SkillAbility>())
+        if (player != null)
         {
-            if (ability.Definition != null)
+            stamina = player.GetComponent<Stamina>();
+            foreach (SkillAbility ability in player.GetComponents<SkillAbility>())
             {
-                abilities[ability.Definition.SkillId] = ability;
+                if (ability.Definition != null)
+                {
+                    abilities[ability.Definition.SkillId] = ability;
+                }
             }
         }
 
@@ -73,7 +77,7 @@ public sealed class SkillManager : MonoBehaviour
             {
                 ability.enabled = unlocked[pair.Key];
             }
-            else
+            else if (!menuMode)
             {
                 Debug.LogWarning($"SkillManager: no SkillAbility on the player for '{pair.Key}'.", this);
             }
@@ -83,7 +87,7 @@ public sealed class SkillManager : MonoBehaviour
     void Update()
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
+        if (keyboard == null || menuMode)
         {
             return;
         }

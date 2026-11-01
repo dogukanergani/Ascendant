@@ -8,8 +8,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
-// Builds the skill tree prefabs, applies the tier/reward tuning to the data assets and adds the panel to the
-// PlayerTest HUD. Run via Tools/UI/Build Skill Tree.
+// Builds the skill tree prefabs, applies the tier/reward tuning to the data assets and wires the panel into the
+// level select and score screens (not the game). Run via Tools/UI/Build Skill Tree.
 public static class SkillTreeBuilder
 {
     const string PrefabDir = "Assets/Prefabs/UI";
@@ -34,7 +34,10 @@ public static class SkillTreeBuilder
         ApplyTuning();
         SkillCardView card = BuildCardPrefab();
         BuildPanelPrefab(card);
-        AddToScene();
+        BuildPointsHudPrefab();
+        BuildScoreScreen();
+        BuildPlayerTest();
+        BuildLevelSelect();
         AssetDatabase.SaveAssets();
         Debug.Log("SkillTreeBuilder: done.");
     }
@@ -162,17 +165,7 @@ public static class SkillTreeBuilder
         RectTransform root = NewRect("SkillTreePanel", null);
         Stretch(root);
 
-        // Always-visible part: point balance under the timer and the "+N" toast.
-        TMP_Text hudBalance = NewText("PointsHud", root, "Puan: 0", 40, TextAlignmentOptions.TopRight);
-        hudBalance.color = Gold;
-        Place(hudBalance.rectTransform, new Vector2(1f, 1f), new Vector2(-32, -100), new Vector2(360, 50));
-        hudBalance.rectTransform.pivot = new Vector2(1f, 1f);
-        TMP_Text toast = NewText("PointsToast", root, "+1", 44, TextAlignmentOptions.TopRight);
-        toast.color = Gold;
-        Place(toast.rectTransform, new Vector2(1f, 1f), new Vector2(-32, -150), new Vector2(360, 56));
-        toast.rectTransform.pivot = new Vector2(1f, 1f);
-
-        // The screen itself, hidden until opened.
+        // The screen itself, hidden until opened from the level select or score screen.
         RectTransform content = NewRect("Content", root);
         Stretch(content);
         Image dim = NewImage("Dim", content, new Color(0f, 0f, 0f, 0.75f));
@@ -200,25 +193,61 @@ public static class SkillTreeBuilder
         layout.constraintCount = 4;
         layout.childAlignment = TextAnchor.UpperCenter;
 
-        TMP_Text hint = NewText("Hint", frame.transform, "Ok tuşları: Gezin     Enter: Yükselt     K / Esc: Kapat", 26);
+        TMP_Text hint = NewText("Hint", frame.transform, "Ok tuşları: Gezin     Enter: Yükselt     Esc: Kapat", 26);
         hint.color = new Color(0.7f, 0.72f, 0.8f, 1f);
-        Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0, 16), new Vector2(1300, 36));
+        Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(-120, 16), new Vector2(1100, 36));
         hint.rectTransform.pivot = new Vector2(0.5f, 0f);
 
+        Button close = NewButton("CloseButton", frame.transform, "Kapat", new Vector2(200, 56));
+        Place((RectTransform)close.transform, new Vector2(1f, 0f), new Vector2(-30, 14), new Vector2(200, 56));
+        ((RectTransform)close.transform).pivot = new Vector2(1f, 0f);
+
         SkillTreePanel panel = root.gameObject.AddComponent<SkillTreePanel>();
-        InputActionAsset actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
-        SetRefs(panel, ("actions", actions), ("content", content.gameObject), ("cardContainer", grid), ("cardPrefab", cardPrefab),
-            ("balanceText", balance), ("hudBalanceText", hudBalance), ("toastText", toast));
+        SetRefs(panel, ("content", content.gameObject), ("cardContainer", grid), ("cardPrefab", cardPrefab),
+            ("balanceText", balance), ("closeButton", close));
         SavePrefab<SkillTreePanel>(root.gameObject, "SkillTreePanel");
     }
 
-    // ---- scene ----
+    // Balance text (top right) and the "+N" toast under it.
+    static void BuildPointsHudPrefab()
+    {
+        RectTransform root = NewRect("SkillPointsHud", null);
+        Stretch(root);
+        TMP_Text balance = NewText("Balance", root, "Puan: 0", 40, TextAlignmentOptions.TopRight);
+        balance.color = Gold;
+        Place(balance.rectTransform, new Vector2(1f, 1f), new Vector2(-32, -100), new Vector2(360, 50));
+        balance.rectTransform.pivot = new Vector2(1f, 1f);
+        TMP_Text toast = NewText("Toast", root, "+1", 44, TextAlignmentOptions.TopRight);
+        toast.color = Gold;
+        Place(toast.rectTransform, new Vector2(1f, 1f), new Vector2(-32, -150), new Vector2(360, 56));
+        toast.rectTransform.pivot = new Vector2(1f, 1f);
 
-    static void AddToScene()
+        SkillPointsHud hud = root.gameObject.AddComponent<SkillPointsHud>();
+        SetRefs(hud, ("balanceText", balance), ("toastText", toast));
+        SavePrefab<SkillPointsHud>(root.gameObject, "SkillPointsHud");
+    }
+
+    // ---- scenes ----
+
+    static GameObject InstantiateUnder(string prefabName, Transform parent)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/{prefabName}.prefab");
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+        instance.transform.SetAsLastSibling();
+        return instance;
+    }
+
+    static void SetDebugKey(GameObject pointsHud, bool value)
+    {
+        SerializedObject so = new(pointsHud.GetComponent<SkillPointsHud>());
+        so.FindProperty("debugKey").boolValue = value;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // In-game: no skill tree, just the point balance and toast in the HUD.
+    static void BuildPlayerTest()
     {
         EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-        GameObject panelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/SkillTreePanel.prefab");
-
         Canvas hud = null;
         foreach (Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
@@ -239,18 +268,126 @@ public static class SkillTreeBuilder
             Object.DestroyImmediate(old.gameObject);
         }
 
-        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(panelPrefab, hud.transform);
-        instance.transform.SetAsLastSibling();
-
-        // Mouse clicks on the panel need an EventSystem.
-        if (Object.FindFirstObjectByType<EventSystem>() == null)
+        foreach (SkillPointsHud old in hud.GetComponentsInChildren<SkillPointsHud>(true))
         {
-            GameObject es = new("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-            es.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+            Object.DestroyImmediate(old.gameObject);
         }
 
+        SetDebugKey(InstantiateUnder("SkillPointsHud", hud.transform), true);
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         EditorSceneManager.SaveOpenScenes();
+    }
+
+    // Level select: skill tree button, balance on top, and a menu-mode SkillManager that holds tiers for the panel.
+    static void BuildLevelSelect()
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/LevelSelect.unity", OpenSceneMode.Single);
+        LevelSelectController controller = Object.FindFirstObjectByType<LevelSelectController>();
+        Transform canvas = controller.transform;
+        foreach (string old in new[] { "SkillTreeButton", "SkillTreePanel", "SkillPointsHud" })
+        {
+            Transform t = canvas.Find(old);
+            if (t != null)
+            {
+                Object.DestroyImmediate(t.gameObject);
+            }
+        }
+
+        SkillManager existing = Object.FindFirstObjectByType<SkillManager>();
+        if (existing != null)
+        {
+            Object.DestroyImmediate(existing.gameObject);
+        }
+
+        GameObject managerObject = new("SkillManager");
+        SkillManager manager = managerObject.AddComponent<SkillManager>();
+        SerializedObject managerSo = new(manager);
+        managerSo.FindProperty("menuMode").boolValue = true;
+        SerializedProperty catalog = managerSo.FindProperty("catalog");
+        string[] skills = { "Skill_Staff", "Skill_Dash", "Skill_SpellBolt" };
+        catalog.arraySize = skills.Length;
+        for (int i = 0; i < skills.Length; i++)
+        {
+            catalog.GetArrayElementAtIndex(i).objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<SkillDefinition>($"Assets/Scripts/Skills/Data/{skills[i]}.asset");
+        }
+
+        managerSo.ApplyModifiedPropertiesWithoutUndo();
+
+        Button button = NewButton("SkillTreeButton", canvas, "Skill Ağacı", new Vector2(420, 100));
+        Place((RectTransform)button.transform, new Vector2(1f, 0f), new Vector2(-60, 60), new Vector2(420, 100));
+        ((RectTransform)button.transform).pivot = new Vector2(1f, 0f);
+        SetDebugKey(InstantiateUnder("SkillPointsHud", canvas), true);
+        GameObject panel = InstantiateUnder("SkillTreePanel", canvas);
+        SetRefs(panel.GetComponent<SkillTreePanel>(), ("manager", manager));
+        SetRefs(controller, ("skillTreeButton", button), ("skillTreePanel", panel.GetComponent<SkillTreePanel>()));
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        EditorSceneManager.SaveOpenScenes();
+    }
+
+    // Score screen: "Skill Ağacı" button, balance on top and a nested panel. The panel finds the level's SkillManager.
+    static void BuildScoreScreen()
+    {
+        string path = $"{PrefabDir}/ScoreScreen.prefab";
+        GameObject root = PrefabUtility.LoadPrefabContents(path);
+        ScoreScreen screen = root.GetComponent<ScoreScreen>();
+        Transform panelRoot = root.transform.Find("Panel");
+        Transform box = panelRoot.Find("Box");
+        Transform oldButton = box.Find("SkillTreeButton");
+        if (oldButton != null)
+        {
+            Object.DestroyImmediate(oldButton.gameObject);
+        }
+
+        foreach (string old in new[] { "SkillTreePanel", "SkillPointsHud" })
+        {
+            Transform t = root.transform.Find(old);
+            if (t == null)
+            {
+                t = panelRoot.Find(old);
+            }
+
+            if (t != null)
+            {
+                Object.DestroyImmediate(t.gameObject);
+            }
+        }
+
+        // Tekrar / Levellar / Sonraki Level share the bottom row; Skill Ağacı sits above them.
+        Button skill = NewButton("SkillTreeButton", box, "Skill Ağacı", new Vector2(520, 90));
+        Place((RectTransform)skill.transform, new Vector2(0.5f, 0f), new Vector2(0, 160), new Vector2(520, 90));
+        Transform next = box.Find("NextButton");
+        next.GetComponentInChildren<TMP_Text>().text = "Sonraki Level";
+        ((RectTransform)next).sizeDelta = new Vector2(300, 90);
+        ((RectTransform)next).anchoredPosition = new Vector2(300, 50);
+        ((RectTransform)box.Find("RetryButton")).anchoredPosition = new Vector2(-300, 50);
+
+        // Inside Panel so the balance is only visible while the score screen is.
+        GameObject pointsHud = (GameObject)PrefabUtility.InstantiatePrefab(
+            AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/SkillPointsHud.prefab"), panelRoot);
+        SetDebugKey(pointsHud, false);
+        GameObject panel = (GameObject)PrefabUtility.InstantiatePrefab(
+            AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/SkillTreePanel.prefab"), root.transform);
+        panel.transform.SetAsLastSibling();
+        SetRefs(screen, ("skillTreeButton", skill), ("skillTreePanel", panel.GetComponent<SkillTreePanel>()));
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
+    }
+
+    static Button NewButton(string name, Transform parent, string label, Vector2 size)
+    {
+        Image bg = NewImage(name, parent, ButtonColor);
+        bg.rectTransform.sizeDelta = size;
+        bg.raycastTarget = true;
+        Button button = bg.gameObject.AddComponent<Button>();
+        button.targetGraphic = bg;
+        ColorBlock colors = button.colors;
+        colors.highlightedColor = new Color(1.15f, 1.15f, 1.15f, 1f);
+        colors.pressedColor = new Color(0.75f, 0.75f, 0.75f, 1f);
+        button.colors = colors;
+        TMP_Text text = NewText("Label", bg.transform, label, 40);
+        Stretch(text.rectTransform);
+        return button;
     }
 
     // ---- helpers ----

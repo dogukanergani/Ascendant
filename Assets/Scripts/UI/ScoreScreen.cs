@@ -12,12 +12,15 @@ public sealed class ScoreScreen : MonoBehaviour
     [SerializeField] Button nextButton;
     [SerializeField] Button retryButton;
     [SerializeField] Button menuButton;
+    [SerializeField] Button skillTreeButton;
+    [SerializeField] SkillTreePanel skillTreePanel;
 
     int level;
 
     void Awake()
     {
         panel.SetActive(false);
+        skillTreeButton.onClick.AddListener(skillTreePanel.Open);
         nextButton.onClick.AddListener(OnNext);
         retryButton.onClick.AddListener(() => SceneRouter.LoadLevel(level));
         menuButton.onClick.AddListener(SceneRouter.LoadLevelSelect);

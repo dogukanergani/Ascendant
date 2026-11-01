@@ -46,6 +46,7 @@ Her skill 3 kademelidir. Kademe 2 ve 3 skill puanıyla açılır.
 ## Skill puanı ve ilerleme
 - Puan kaynakları: düşman öldürme, level bitirme (yıldız sayısına göre), gizli oda.
 - Skill ağacı UI'da, kademe açma kalıcıdır (JSON kayıt: `skills.json`, `progress.json`).
+- Skill ağacı yalnızca level geçişlerinde (level seçme ve level sonu ekranı) açılır, oyun içinde açılmaz.
 - Mevcut `SkillManager`, `SkillDefinition`, UI ve `ProgressService` kullanılmaya devam eder.
 
 ## Level yapısı

@@ -8,9 +8,12 @@ public sealed class LevelSelectController : MonoBehaviour
     [SerializeField] Transform container;
     [SerializeField] Button backButton;
     [SerializeField] TMP_Text messageText;
+    [SerializeField] Button skillTreeButton;
+    [SerializeField] SkillTreePanel skillTreePanel;
 
     void Awake()
     {
+        skillTreeButton.onClick.AddListener(skillTreePanel.Open);
         backButton.onClick.AddListener(SceneRouter.LoadMenu);
         for (int i = 0; i < ProgressService.LevelCount; i++)
         {
