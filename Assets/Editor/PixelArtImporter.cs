@@ -156,7 +156,8 @@ public class PixelArtImporter : AssetPostprocessor
             cellW = cellH = SmallCellSize;
         }
         // Tilemap cells anchor sprites at their pivot, so tiles need a centered one.
-        bool centerPivot = lowerName.StartsWith("tileset_");
+        // Prop sheets (tileset_props*) are placed on the floor, so they keep the bottom-center pivot.
+        bool centerPivot = lowerName.StartsWith("tileset_") && !lowerName.StartsWith("tileset_props");
         int columns = texture.width / cellW;
         int rows = texture.height / cellH;
 

@@ -7,19 +7,17 @@ using UnityEngine.Tilemaps;
 
 // Builds Assets/Scenes/Level_01.unity (a copy of the PlayerTest setup) from code: top-down tilemaps for five rooms
 // joined by corridors with doors, room controllers with their waves, the boss room, props and the exit.
-// Run the tileset generator first (Tools/Level/Generate TopDown Tileset). Rerunning rebuilds the level objects.
+// The tile and prop sheets come from Blender (tileset_topdown.png, tileset_props.png); DungeonDressing paints them. Rerunning rebuilds the level objects.
 public static class LevelBuilder
 {
     const string ScenePath = "Assets/Scenes/Level_01.unity";
     const string TopDownFolder = "Assets/Art/Environment/TopDown";
-    const string TileFolder = TopDownFolder + "/Tiles";
     const string BossStatsPath = "Assets/Scripts/Enemies/Data/Orc3BossStats.asset";
     const string BossPrefabPath = "Assets/Prefabs/Enemies/Orc3Boss.prefab";
     const int WallLayer = 11;
-    const int WallThickness = 2;
 
-    // Sheet indices (row 0 normal theme, row 1 boss theme; see TopDownTilesetGenerator).
-    const int FloorA = 0, WallTopTile = 3, WallFrontTile = 4, DoorClosedTile = 5, DoorOpenTile = 6, ExitTile = 7, BossRow = 8;
+    // Sheet indices (rows 0-1 normal theme, rows 2-3 boss theme; see DungeonDressing).
+    const int DoorClosedTile = DungeonDressing.DoorClosed, DoorOpenTile = DungeonDressing.DoorOpen, ExitTile = DungeonDressing.Exit, BossRow = DungeonDressing.BossRow;
 
     [MenuItem("Tools/Level/Build Level_01")]
     public static void BuildLevel01()
@@ -207,50 +205,13 @@ public static class LevelBuilder
             tileCollider.compositeOperation = Collider2D.CompositeOperation.Merge;
             var composite = go.AddComponent<CompositeCollider2D>();
             composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+            go.AddComponent<TilemapColliderRefresh>();
         }
 
         return map;
     }
 
-    static void PaintAll(HashSet<Vector2Int> floorCells, Tilemap floorMap, Tilemap wallMap)
-    {
-        foreach (Vector2Int c in floorCells)
-        {
-            floorMap.SetTile(new Vector3Int(c.x, c.y, 0), TileAt(FloorTileIndex(c)));
-        }
-
-        var walls = new HashSet<Vector2Int>();
-        foreach (Vector2Int c in floorCells)
-        {
-            for (int dx = -WallThickness; dx <= WallThickness; dx++)
-            {
-                for (int dy = -WallThickness; dy <= WallThickness; dy++)
-                {
-                    var n = new Vector2Int(c.x + dx, c.y + dy);
-                    if (!floorCells.Contains(n))
-                    {
-                        walls.Add(n);
-                    }
-                }
-            }
-        }
-
-        foreach (Vector2Int w in walls)
-        {
-            int index = floorCells.Contains(new Vector2Int(w.x, w.y - 1)) ? WallFrontTile : WallTopTile;
-            wallMap.SetTile(new Vector3Int(w.x, w.y, 0), TileAt(index + ThemeOffset(w)));
-        }
-    }
-
-    // The boss room and its corridor use the red tint row.
-    static int ThemeOffset(Vector2Int c) => c.y >= 22 ? BossRow : 0;
-
-    static int FloorTileIndex(Vector2Int c)
-    {
-        int h = (c.x * 7349 + c.y * 3571) & 0xff;
-        int variant = h < 150 ? 0 : h < 205 ? 1 : 2;
-        return FloorA + variant + ThemeOffset(c);
-    }
+    static void PaintAll(HashSet<Vector2Int> floorCells, Tilemap floorMap, Tilemap wallMap) => DungeonDressing.Paint(floorCells, floorMap, wallMap);
 
     // ---- rooms and doors ----
 
@@ -322,59 +283,15 @@ public static class LevelBuilder
         return room;
     }
 
-    // ---- props ----
+    // ---- props and tile assets (see DungeonDressing) ----
 
     static void PlaceProps(Transform parent)
     {
-        var root = new GameObject("Props").transform;
-        root.SetParent(parent);
-        (string prefab, float x, float y)[] props =
-        {
-            ("Cave_Bonefire", -4f, 1.5f), ("Cave_Crystal_Blue", 4.5f, 2.5f), ("Cave_Crystal_Blue", -4.5f, -2.5f), ("Rock_Medium", 4.5f, -2.5f),
-            ("Tree_Moss", 4.5f, 3.5f),
-            ("Cave_Rock", 12.5f, 4f), ("Cave_Rock", 25.5f, -3.5f), ("Cave_Crystal_Blue", 12.5f, -3f), ("Cave_Crystal_White", 25.5f, 4.5f), ("Rock_Large", 19f, -4f),
-            ("Cave_Crystal_White", 14.5f, 12.5f), ("Cave_Crystal_Blue", 23.5f, 17.5f), ("Rock_Medium", 23.5f, 12.5f), ("Rock_Boulder", 14.5f, 17.5f),
-            ("Cave_Crystal_Blue", -11.5f, 10.5f), ("Cave_Crystal_Blue", -11.5f, 19.5f), ("Cave_Rock", 5f, 10.5f), ("Cave_Rock", 5f, 19.5f), ("Rock_Large", -3f, 9.5f),
-            ("Cave_Crystal_White", -11.5f, 28.5f), ("Cave_Crystal_White", 3.5f, 28.5f), ("Cave_Crystal_White", -11.5f, 39.5f), ("Cave_Crystal_White", 3.5f, 39.5f),
-        };
-        foreach (var (prefab, x, y) in props)
-        {
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(Load<GameObject>($"Assets/Prefabs/Environment/Props/{prefab}.prefab"), root);
-            go.transform.position = new Vector3(x, y, 0f);
-            foreach (SpriteRenderer sr in go.GetComponentsInChildren<SpriteRenderer>())
-            {
-                sr.sortingOrder = 1 - Mathf.RoundToInt(y);
-            }
-        }
+        DungeonDressing.PlaceProps(parent);
+        DungeonDressing.ConfigureSorting();
     }
 
-    // ---- assets ----
-
-    static void CreateTileAssets()
-    {
-        if (!AssetDatabase.IsValidFolder(TileFolder))
-        {
-            AssetDatabase.CreateFolder(TopDownFolder, "Tiles");
-        }
-
-        for (int i = 0; i < 16; i++)
-        {
-            string path = $"{TileFolder}/Tile_TD_{i}.asset";
-            var tile = AssetDatabase.LoadAssetAtPath<Tile>(path);
-            if (tile == null)
-            {
-                tile = ScriptableObject.CreateInstance<Tile>();
-                AssetDatabase.CreateAsset(tile, path);
-            }
-
-            tile.sprite = SpriteAt(i);
-            // Grid collision for every tile; only the Walls tilemap has a collider, the Floor map ignores it.
-            tile.colliderType = Tile.ColliderType.Grid;
-            EditorUtility.SetDirty(tile);
-        }
-
-        AssetDatabase.SaveAssets();
-    }
+    static void CreateTileAssets() => DungeonDressing.CreateTileAssets();
 
     static void EnsureBoss()
     {
@@ -468,7 +385,6 @@ public static class LevelBuilder
         throw new System.Exception($"LevelBuilder: missing {subName} in {path}");
     }
 
-    static Tile TileAt(int index) => Load<Tile>($"{TileFolder}/Tile_TD_{index}.asset");
 
     static void SetProps(Object target, System.Action<SerializedObject> apply)
     {
