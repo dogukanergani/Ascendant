@@ -159,7 +159,7 @@ public static class LevelPaintSetup
     static TileBase T(string name) => AssetDatabase.LoadAssetAtPath<TileBase>($"{TileFolder}/{name}.asset");
 
     // Example: 10 x 7 floor, 3 thick cobble walls (cap on top), an arch gate in the top wall, a few decals and props.
-    static void PaintSampleRoom(Tilemap ground, Tilemap walls, Tilemap decor, Tilemap props)
+    public static void PaintSampleRoom(Tilemap ground, Tilemap walls, Tilemap decor, Tilemap props)
     {
         const int fx0 = 44, fx1 = 53, fy0 = 2, fy1 = 8;      // floor rect
         const int wx0 = 41, wx1 = 56, wy0 = -1, wy1 = 12;     // outer wall rect

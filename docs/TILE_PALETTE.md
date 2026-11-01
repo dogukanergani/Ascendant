@@ -49,7 +49,7 @@ Yanlış yer: zemini `Walls`'a boyama (oyuncu geçemez), duvarı `Ground`'a boya
 
 ## 5. Kapı kemeri
 
-Paletteki kemerli kapı (`WL_10`/`WL_11`) 4x4: sol yarı 2 sütun + sağ yarı 2 sütun. Duvar kalınlığı 4 satır olmalı (kapak + 3 yüz); paletteki bloğu seçip (Select aracıyla sürükle), kapı yerine damgala. Kapı tile'larında **collider yoktur** (süs kapı); oyunda odayı kapatan gerçek kapılar `Level` altındaki `Door_*` nesneleridir (kendi collider'ı var, oda temizlenince açılır). Gerçek kapıyı kemerin içinde konumlandır.
+Paletteki kemerli kapı (`WL_10`/`WL_11`) 4x4: sol yarı 2 sütun + sağ yarı 2 sütun. Duvar kalınlığı 4 satır olmalı (kapak + 3 yüz); paletteki bloğu seçip (Select aracıyla sürükle), kapı yerine damgala. Kapı tile'larında **tile collider'ı yoktur** (süs kapı, güvenilir bloklamaz). Geçilmez bir kapı gerekiyorsa kemerin altına `Walls` altında boş bir GameObject + BoxCollider2D (Wall katmanı) koy (Level_01'de `Walls/ArchBlockers`); oyunda odayı kapatan gerçek kapılar `Level` altındaki `Door_*` nesneleridir (kendi collider'ı var, oda temizlenince açılır). Gerçek kapıyı kemerin içinde konumlandır.
 
 Kapı geçişi (koridor) kalınlığı 2 hücre; duvarı Erase edip aralığı bırak.
 
@@ -71,3 +71,9 @@ Level'ın doğusunda (x 41-56, y -1..12) küçük bir örnek oda boyalı: kalın
 
 * `Tools > Level > Build Dungeon Palettes`: tile asset'lerini, palette'leri ve yeni prop prefab'larını (paketten) yeniden kurar; paketi yeniden import edersen çalıştır.
 * `Tools > Level > Setup Level_01 For Painting`: Level_01'i boyanabilir hale getirir (zaten yapıldı; yeniden çalıştırmak Ground/Walls'ı temizler!). Eski otomatik düzen için `Level_01_Auto.unity`.
+
+## 10. Boyanmış Level_01 ve `Tools/Level/Paint Level_01`
+
+Level_01 5 odayla koddan boyandı (`LevelPainter.cs`): zemin `Floor_Auto`, 3-4 hücre kalın `Wall_Auto` halkası (üstte kapak + 3 yüz satırı), halkanın arkasında koyu kaya dolgusu için **`Backdrop`** Tilemap'i (collider yok, sıra -92), meşale/sandık/fıçı/kasa, iki kemerli kapı süsü (`Walls/ArchBlockers` bunları kapatır). Menü komutu `Ground/Decor/Walls/WallTop/Backdrop/Props` içeriğini **siler** ve baştan boyar; elle değişiklik yaptıktan sonra çalıştırma. Oda/alkov/sütun yerleşimi `LevelPainter.cs` başındaki rect tablolarında. `Tools/Level/Render Level_01 Shots` Edit modunda `Assets/Screenshots/lvl_*.png` ve `game_*.png` render'larını üretir.
+
+Elle boyarken dış dolguyu `Backdrop`'a, duvarı `Walls`'a boya.

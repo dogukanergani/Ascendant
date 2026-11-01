@@ -224,7 +224,7 @@ public static class TilePaletteBuilder
         PutSheet(map, "wall_6", "WL_6", 4, 4, 10, 6, grid);
         PutSheet(map, "wall_8", "WL_8", 4, 4, 15, 6, grid);
 
-        // Arch gate (left half wall_10 + right half wall_11 = 4 wide, 4 tall): decoration, no collider.
+        // Arch gate (left half wall_10 + right half wall_11 = 4 wide, 4 tall): decoration; the tile collider does not build reliably, so LevelPainter adds a BoxCollider2D blocker.
         var none = Tile.ColliderType.None;
         PutSheet(map, "wall_10", "WL_10", 4, 4, 0, 0, none, i => i % 4 < 2);
         PutSheet(map, "wall_11", "WL_11", 4, 4, 0, 0, none, i => i % 4 >= 2);

@@ -9,7 +9,7 @@ public sealed class DungeonFloorTile : TileBase
 {
     public Sprite[] floor = new Sprite[16];
     public Color tint = Color.white;
-    public Color shadowTint = new(0.84f, 0.84f, 0.9f, 1f);
+    public Color shadowTint = new(0.68f, 0.66f, 0.74f, 1f);
 
     public override void RefreshTile(Vector3Int position, ITilemap tilemap)
     {
