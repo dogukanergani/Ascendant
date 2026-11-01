@@ -21,8 +21,19 @@ public class PixelArtImporter : AssetPostprocessor
     const string ParallaxPrefix = "parallax_";
     const int SmallCellSize = 32;
 
+    // Third-party art (gitignored): props are single sprites with a bottom-center pivot,
+    // orc sheets are sliced into 64x64 cells (4 direction rows).
+    const string ThirdPartyFolder = "Assets/Art/ThirdParty/";
+    const string OrcFolder = "Assets/Art/ThirdParty/Craftpix/orc/";
+
     void OnPreprocessTexture()
     {
+        if (IsThirdPartyPng(assetPath))
+        {
+            ApplyThirdPartySettings((TextureImporter)assetImporter);
+            return;
+        }
+
         if (!IsArtPng(assetPath))
             return;
 
@@ -52,16 +63,48 @@ public class PixelArtImporter : AssetPostprocessor
     {
         foreach (string path in imported)
         {
+            if (path.StartsWith(OrcFolder) && path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
+            {
+                SliceGrid(path, CellSize, CellSize);
+                continue;
+            }
+
             if (!IsArtPng(path) || !IsSheetName(Path.GetFileNameWithoutExtension(path)))
                 continue;
 
-            SliceGrid(path);
+            SliceGrid(path, 0, 0);
         }
+    }
+
+    static bool IsThirdPartyPng(string path)
+    {
+        return path.StartsWith(ThirdPartyFolder) && path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    static void ApplyThirdPartySettings(TextureImporter importer)
+    {
+        bool sheet = IsOrcPath(importer.assetPath);
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = sheet ? SpriteImportMode.Multiple : SpriteImportMode.Single;
+        importer.filterMode = FilterMode.Point;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.spritePixelsPerUnit = PixelsPerUnit;
+        importer.mipmapEnabled = false;
+
+        var settings = new TextureImporterSettings();
+        importer.ReadTextureSettings(settings);
+        settings.spriteAlignment = (int)SpriteAlignment.BottomCenter;
+        importer.SetTextureSettings(settings);
+    }
+
+    static bool IsOrcPath(string path)
+    {
+        return path.StartsWith(OrcFolder);
     }
 
     static bool IsArtPng(string path)
     {
-        return path.StartsWith(ArtFolder) && path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
+        return path.StartsWith(ArtFolder) && !path.StartsWith(ThirdPartyFolder) && path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
     }
 
     static bool IsSheetName(string fileName)
@@ -88,7 +131,7 @@ public class PixelArtImporter : AssetPostprocessor
     }
 
     // Cells are counted from the top-left of the sheet, texture rects start at the bottom-left.
-    static void SliceGrid(string path)
+    static void SliceGrid(string path, int forcedCellW, int forcedCellH)
     {
         var importer = AssetImporter.GetAtPath(path) as TextureImporter;
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
@@ -98,7 +141,12 @@ public class PixelArtImporter : AssetPostprocessor
         string fileName = Path.GetFileNameWithoutExtension(path);
         string lowerName = fileName.ToLowerInvariant();
         int cellW = CellSize, cellH = CellSize;
-        if (lowerName.StartsWith(ParallaxPrefix))
+        if (forcedCellW > 0)
+        {
+            cellW = forcedCellW;
+            cellH = forcedCellH;
+        }
+        else if (lowerName.StartsWith(ParallaxPrefix))
         {
             cellW = texture.width;
             cellH = texture.height;
