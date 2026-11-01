@@ -19,3 +19,7 @@ MonoBehaviour:
   staminaCost: 15
   unlockedByDefault: 1
   activationKey: 20
+  tierDamage:
+  - {x: 8, y: 12}
+  - {x: 18, y: 24}
+  - {x: 36, y: 44}

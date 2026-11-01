@@ -8,6 +8,8 @@ public sealed class SkillSaveEntry
 {
     public string skillId;
     public bool unlocked;
+    // 0 in files saved before tiers existed; read as tier 1.
+    public int tier;
 }
 
 [Serializable]

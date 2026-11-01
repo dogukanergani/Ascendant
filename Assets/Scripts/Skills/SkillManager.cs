@@ -12,6 +12,7 @@ public sealed class SkillManager : MonoBehaviour
     readonly Dictionary<string, SkillAbility> abilities = new();
     readonly Dictionary<string, bool> unlocked = new();
     readonly Dictionary<string, float> cooldownEnds = new();
+    readonly Dictionary<string, int> tiers = new();
 
     Stamina stamina;
 
@@ -61,6 +62,7 @@ public sealed class SkillManager : MonoBehaviour
             if (unlocked.ContainsKey(entry.skillId))
             {
                 unlocked[entry.skillId] = entry.unlocked;
+                tiers[entry.skillId] = Mathf.Clamp(entry.tier, 1, MaxTier);
             }
         }
 
@@ -92,6 +94,23 @@ public sealed class SkillManager : MonoBehaviour
             {
                 TryUse(definition.SkillId);
             }
+        }
+    }
+
+    public const int MaxTier = 3;
+
+    // Tier 1 until the skill tree raises it (tiers 2 and 3 cost skill points).
+    public int GetTier(string skillId)
+    {
+        return tiers.TryGetValue(skillId, out int tier) ? tier : 1;
+    }
+
+    public void SetTier(string skillId, int tier)
+    {
+        if (definitions.ContainsKey(skillId))
+        {
+            tiers[skillId] = Mathf.Clamp(tier, 1, MaxTier);
+            Save();
         }
     }
 
@@ -183,7 +202,7 @@ public sealed class SkillManager : MonoBehaviour
         SkillSaveData data = new();
         foreach (KeyValuePair<string, bool> pair in unlocked)
         {
-            data.entries.Add(new SkillSaveEntry { skillId = pair.Key, unlocked = pair.Value });
+            data.entries.Add(new SkillSaveEntry { skillId = pair.Key, unlocked = pair.Value, tier = GetTier(pair.Key) });
         }
 
         SkillSaveStorage.Save(data);

@@ -113,7 +113,7 @@ public sealed class PlayerController2D : MonoBehaviour
         Vector2 knockback = (away.sqrMagnitude > 0.0001f ? away.normalized : -Facing) * hurtKnockbackSpeed;
         if (health != null)
         {
-            return health.Damage(damage, knockback);
+            return health.Damage(new DamageInfo(damage, knockback, false, DamageSource.Enemy));
         }
 
         GrantInvulnerability(hurtInvulnerability);
@@ -121,9 +121,9 @@ public sealed class PlayerController2D : MonoBehaviour
         return true;
     }
 
-    void OnDamaged(int amount, Vector2 knockback)
+    void OnDamaged(DamageInfo info)
     {
-        ApplyHurt(knockback);
+        ApplyHurt(info.Knockback);
     }
 
     void ApplyHurt(Vector2 knockback)

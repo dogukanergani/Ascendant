@@ -13,8 +13,10 @@ public sealed class Health : MonoBehaviour, IDamageable
     float invulnerableUntil = float.NegativeInfinity;
 
     public event Action<int, int> Changed;
-    // Raised after a hit lands: damage in parts and the knockback vector.
-    public event Action<int, Vector2> Damaged;
+    // Raised after a hit lands.
+    public event Action<DamageInfo> Damaged;
+    // Raised for every Health after a hit lands; lets world-space feedback (damage numbers) listen in one place.
+    public static event Action<Health, DamageInfo> AnyDamaged;
     public event Action Died;
 
     public int Current => current;
@@ -30,8 +32,18 @@ public sealed class Health : MonoBehaviour, IDamageable
         current = Max;
     }
 
-    public bool Damage(int amount, Vector2 knockback)
+    // Enemies count hit points one for one: maxParts hearts of one part each.
+    public void SetMaxParts(int maxParts, float invulnerability)
     {
+        maxHearts = Mathf.Max(1, maxParts);
+        partsPerHeart = 1;
+        invulnerabilityTime = invulnerability;
+        current = Max;
+    }
+
+    public bool Damage(in DamageInfo info)
+    {
+        int amount = info.Amount;
         if (IsDead || amount <= 0 || IsInvulnerable)
         {
             return false;
@@ -40,7 +52,8 @@ public sealed class Health : MonoBehaviour, IDamageable
         current = Mathf.Max(0, current - amount);
         invulnerableUntil = Time.time + invulnerabilityTime;
         Changed?.Invoke(current, Max);
-        Damaged?.Invoke(amount, knockback);
+        Damaged?.Invoke(info);
+        AnyDamaged?.Invoke(this, info);
         if (current == 0)
         {
             Died?.Invoke();

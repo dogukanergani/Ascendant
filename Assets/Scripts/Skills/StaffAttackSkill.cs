@@ -1,35 +1,51 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-// Basic melee: a three-hit staff combo. Every press swings in the facing direction; the hit lands a moment into
-// the swing and damages and knocks back everything on the enemy layer inside a short box. Costs no stamina.
+// Basic melee: a three-hit staff combo. Every press swings in the facing direction (nudged toward the nearest enemy
+// by a small aim assist); a moment into the swing the hit area stays active for a short window and damages and
+// knocks back every enemy inside it once. Damage comes from the skill tier. Costs no stamina.
 public sealed class StaffAttackSkill : SkillAbility
 {
     [SerializeField] LayerMask enemyMask = 1 << 9;
-    [SerializeField] int[] comboDamage = { 1, 1, 2 };
+    [SerializeField] float[] comboMultiplier = { 1f, 1f, 1.4f };
     [SerializeField] float[] comboKnockback = { 4f, 4f, 8f };
     // Time from pressing to the hit landing (frame 3 of 5).
     [SerializeField] float hitDelay = 0.1f;
+    // How long the hit area stays active, so moving enemies are not missed by a single-frame check.
+    [SerializeField] float hitWindow = 0.12f;
     // Time after a swing before the next press is accepted.
     [SerializeField] float swingInterval = 0.25f;
     // A press within this time after the last swing starts continues the combo.
     [SerializeField] float comboWindow = 0.5f;
     [SerializeField] float moveSpeedFactor = 0.4f;
     [SerializeField] Vector2 hitCenterOffset = new(0f, 0.3f);
-    [SerializeField] float hitReach = 0.7f;
-    [SerializeField] Vector2 hitSize = new(0.9f, 1.1f);
-    [SerializeField] float hitStopTime = 0.04f;
+    // Hit area: reach in front of the player, a little behind so enemies right beside them are covered, and width.
+    [SerializeField] float hitForward = 1.6f;
+    [SerializeField] float hitBehind = 0.2f;
+    [SerializeField] float hitWidth = 1.4f;
+    [Header("Aim assist")]
+    [SerializeField] float assistRadius = 2.4f;
+    [SerializeField] float assistAngle = 55f;
+    // 0 keeps the facing direction, 1 aims straight at the target.
+    [SerializeField, Range(0f, 1f)] float assistStrength = 0.7f;
+    [SerializeField] float hitStopTime = 0.03f;
     [SerializeField] Material flashMaterial;
 
-    readonly Collider2D[] hits = new Collider2D[16];
+    readonly Collider2D[] hits = new Collider2D[32];
+    readonly HashSet<IDamageable> hitThisSwing = new();
 
     PlayerInputReader input;
     PlayerAnimationDriver animationDriver;
     SkillManager manager;
     int comboStep;
+    int swingStep;
     float lastSwingStart = float.NegativeInfinity;
     float hitTime;
-    bool hitPending;
-    Vector2 swingDirection;
+    bool swingPending;
+    bool windowOpen;
+    float windowEnd;
+    bool landedThisSwing;
+    Vector2 swingDirection = Vector2.down;
     float hitStopEnd;
 
     // Ticks after Move (0) so the slow-down scales the velocity Move just set.
@@ -64,21 +80,26 @@ public sealed class StaffAttackSkill : SkillAbility
             input.AttackPressed -= OnAttackPressed;
         }
 
-        hitPending = false;
+        swingPending = false;
+        windowOpen = false;
         comboStep = 0;
         RestoreTimeScale();
     }
 
     void OnAttackPressed()
     {
-        if (manager == null)
-        {
-            manager = FindFirstObjectByType<SkillManager>();
-        }
-
+        FindManager();
         if (manager != null && Definition != null)
         {
             manager.TryUse(Definition.SkillId);
+        }
+    }
+
+    void FindManager()
+    {
+        if (manager == null)
+        {
+            manager = FindFirstObjectByType<SkillManager>();
         }
     }
 
@@ -95,10 +116,11 @@ public sealed class StaffAttackSkill : SkillAbility
             comboStep = 0;
         }
 
-        swingDirection = Player.Facing;
+        swingDirection = AimedDirection();
         lastSwingStart = Time.time;
         hitTime = Time.time + hitDelay;
-        hitPending = true;
+        swingPending = true;
+        windowOpen = false;
         animationDriver?.PlayAttack();
         return true;
     }
@@ -110,10 +132,24 @@ public sealed class StaffAttackSkill : SkillAbility
             Player.Velocity *= moveSpeedFactor;
         }
 
-        if (hitPending && Time.time >= hitTime)
+        if (swingPending && Time.time >= hitTime)
         {
-            hitPending = false;
+            swingPending = false;
+            BeginHitWindow();
+        }
+
+        if (windowOpen)
+        {
             ApplyHit();
+            if (Time.time >= windowEnd)
+            {
+                windowOpen = false;
+                if (landedThisSwing && hitStopTime > 0f)
+                {
+                    Time.timeScale = 0f;
+                    hitStopEnd = Time.unscaledTime + hitStopTime;
+                }
+            }
         }
     }
 
@@ -125,36 +161,84 @@ public sealed class StaffAttackSkill : SkillAbility
         }
     }
 
-    void ApplyHit()
+    // The facing direction, turned toward the nearest enemy that is roughly in front of the player.
+    Vector2 AimedDirection()
     {
-        int step = Mathf.Clamp(comboStep, 0, comboDamage.Length - 1);
-        Vector2 center = (Vector2)Player.transform.position + hitCenterOffset + swingDirection * hitReach;
-        Vector2 size = Mathf.Abs(swingDirection.x) > 0f ? hitSize : new Vector2(hitSize.y, hitSize.x);
-
+        Vector2 facing = Player.Facing;
+        Vector2 origin = (Vector2)Player.transform.position + hitCenterOffset;
         ContactFilter2D filter = new ContactFilter2D { useLayerMask = true, layerMask = enemyMask, useTriggers = true };
-        int count = Physics2D.OverlapBox(center, size, 0f, filter, hits);
-        float knockback = comboKnockback[Mathf.Min(step, comboKnockback.Length - 1)];
-        int landed = 0;
+        int count = Physics2D.OverlapCircle(origin, assistRadius, filter, hits);
+        float bestDistance = float.MaxValue;
+        Vector2 best = Vector2.zero;
         for (int i = 0; i < count; i++)
         {
-            IDamageable target = hits[i].GetComponentInParent<IDamageable>();
-            if (target == null || hits[i].GetComponentInParent<PlayerController2D>() != null)
+            Health health = hits[i].GetComponentInParent<Health>();
+            if (health == null || health.IsDead || hits[i].GetComponentInParent<PlayerController2D>() != null)
             {
                 continue;
             }
 
-            if (target.Damage(comboDamage[step], swingDirection * knockback))
+            Vector2 to = (Vector2)hits[i].bounds.center - origin;
+            float distance = to.magnitude;
+            if (distance < 0.01f || Vector2.Angle(facing, to) > assistAngle || distance >= bestDistance)
             {
-                landed++;
-                HitFlash.Play(((Component)target).gameObject, flashMaterial);
+                continue;
             }
+
+            bestDistance = distance;
+            best = to / distance;
         }
 
-        comboStep = (step + 1) % comboDamage.Length;
-        if (landed > 0 && hitStopTime > 0f)
+        if (bestDistance == float.MaxValue)
         {
-            Time.timeScale = 0f;
-            hitStopEnd = Time.unscaledTime + hitStopTime;
+            return facing;
+        }
+
+        return Vector2.Lerp(facing, best, assistStrength).normalized;
+    }
+
+    void BeginHitWindow()
+    {
+        swingStep = Mathf.Clamp(comboStep, 0, comboMultiplier.Length - 1);
+        comboStep = (swingStep + 1) % comboMultiplier.Length;
+        hitThisSwing.Clear();
+        landedThisSwing = false;
+        windowOpen = true;
+        windowEnd = Time.time + hitWindow;
+    }
+
+    void ApplyHit()
+    {
+        float centerAlong = (hitForward - hitBehind) * 0.5f;
+        Vector2 center = (Vector2)Player.transform.position + hitCenterOffset + swingDirection * centerAlong;
+        Vector2 size = new Vector2(hitForward + hitBehind, hitWidth);
+        float angle = Mathf.Atan2(swingDirection.y, swingDirection.x) * Mathf.Rad2Deg;
+        ContactFilter2D filter = new ContactFilter2D { useLayerMask = true, layerMask = enemyMask, useTriggers = true };
+        int count = Physics2D.OverlapBox(center, size, angle, filter, hits);
+        if (count == 0)
+        {
+            return;
+        }
+
+        FindManager();
+        int tier = manager != null && Definition != null ? manager.GetTier(Definition.SkillId) : 1;
+        Vector2Int range = Definition != null ? Definition.GetDamageRange(tier) : new Vector2Int(1, 1);
+        float knockback = comboKnockback[Mathf.Min(swingStep, comboKnockback.Length - 1)];
+        for (int i = 0; i < count; i++)
+        {
+            IDamageable target = hits[i].GetComponentInParent<IDamageable>();
+            if (target == null || hitThisSwing.Contains(target) || hits[i].GetComponentInParent<PlayerController2D>() != null)
+            {
+                continue;
+            }
+
+            hitThisSwing.Add(target);
+            DamageInfo info = DamageRoll.Roll(range, comboMultiplier[swingStep], swingDirection * knockback, DamageSource.Staff);
+            if (target.Damage(info))
+            {
+                landedThisSwing = true;
+                HitFlash.Play(((Component)target).gameObject, flashMaterial);
+            }
         }
     }
 
@@ -167,10 +251,15 @@ public sealed class StaffAttackSkill : SkillAbility
         }
     }
 
-    void OnDrawGizmosSelected()
+    void OnDrawGizmos()
     {
-        Gizmos.color = Color.cyan;
-        Vector2 facing = Application.isPlaying && Player != null ? Player.Facing : Vector2.down;
-        Gizmos.DrawWireCube((Vector2)transform.position + hitCenterOffset + facing * hitReach, hitSize);
+        Vector2 direction = Application.isPlaying ? swingDirection : Vector2.down;
+        float centerAlong = (hitForward - hitBehind) * 0.5f;
+        Vector2 center = (Vector2)transform.position + hitCenterOffset + direction * centerAlong;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        Gizmos.color = windowOpen ? Color.red : Color.cyan;
+        Gizmos.matrix = Matrix4x4.TRS(center, Quaternion.Euler(0f, 0f, angle), Vector3.one);
+        Gizmos.DrawWireCube(Vector3.zero, new Vector3(hitForward + hitBehind, hitWidth, 0f));
+        Gizmos.matrix = Matrix4x4.identity;
     }
 }

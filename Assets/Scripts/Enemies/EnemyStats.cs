@@ -4,6 +4,10 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Ascendant/Enemy Stats", fileName = "EnemyStats")]
 public sealed class EnemyStats : ScriptableObject
 {
+    [Header("Health")]
+    // Hit points. Player skill damage is rolled in the same scale (see SkillDefinition tier damage).
+    public int maxHealth = 20;
+
     [Header("Movement")]
     public float patrolSpeed = 1f;
     public float chaseSpeed = 2f;

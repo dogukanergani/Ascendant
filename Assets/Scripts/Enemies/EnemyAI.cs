@@ -54,6 +54,14 @@ public sealed class EnemyAI : MonoBehaviour
 
     public State Current => state;
 
+    // Spawned waves know where the player is from the start: they chase from any distance, through line of sight.
+    bool hunting;
+
+    public void StartHunting()
+    {
+        hunting = true;
+    }
+
     // Positions are measured at the collider (the feet), not the transform pivot, for both orc and player.
     Vector2 Self => colliders[0].bounds.center;
     Vector2 Target => playerCollider.bounds.center;
@@ -67,6 +75,7 @@ public sealed class EnemyAI : MonoBehaviour
         body.gravityScale = 0f;
         body.freezeRotation = true;
         body.linearDamping = 0f;
+        health.SetMaxParts(stats.maxHealth, 0f);
         home = Self;
         patrolTarget = home;
     }
@@ -266,11 +275,12 @@ public sealed class EnemyAI : MonoBehaviour
 
         Vector2 away = Target - Self;
         Vector2 knockback = (away.sqrMagnitude > 0.0001f ? away.normalized : facing) * stats.knockbackSpeed;
-        player.GetComponent<IDamageable>()?.Damage(stats.damage, knockback);
+        player.GetComponent<IDamageable>()?.Damage(new DamageInfo(stats.damage, knockback, false, DamageSource.Enemy));
     }
 
-    void OnDamaged(int amount, Vector2 knockback)
+    void OnDamaged(DamageInfo info)
     {
+        Vector2 knockback = info.Knockback;
         if (state == State.Dead || health.IsDead)
         {
             return;
@@ -317,6 +327,11 @@ public sealed class EnemyAI : MonoBehaviour
         if (playerCollider == null || PlayerDead())
         {
             return false;
+        }
+
+        if (hunting)
+        {
+            return true;
         }
 
         Vector2 to = Target - Self;

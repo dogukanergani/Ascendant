@@ -13,6 +13,19 @@ public sealed class SkillDefinition : ScriptableObject
     // Key.None means the skill has no manual activation (passive skills like double jump).
     [SerializeField] Key activationKey = Key.None;
 
+    // Base damage range per tier (index 0 = tier 1). Empty for skills that do no direct damage.
+    [SerializeField] Vector2Int[] tierDamage = System.Array.Empty<Vector2Int>();
+
+    public Vector2Int GetDamageRange(int tier)
+    {
+        if (tierDamage.Length == 0)
+        {
+            return Vector2Int.zero;
+        }
+
+        return tierDamage[Mathf.Clamp(tier - 1, 0, tierDamage.Length - 1)];
+    }
+
     public string SkillId => skillId;
     public string DisplayName => displayName;
     public Sprite Icon => icon;

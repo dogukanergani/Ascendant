@@ -69,3 +69,10 @@ Her skill 3 kademelidir. Kademe 2 ve 3 skill puanıyla açılır.
 - Gider: yerçekimi, zıplama, duvar kayma, çift zıplama, yukarı kayan kamera, yükselen lav, yan görünüm tileset'i.
 - Yeniden yazılır: oyuncu hareketi (8 yön), animasyon sürücüsü, oyuncu ve düşman sprite'ları (4 yönlü, üstten), kanca (yön tabanlı).
 - Kalır: skill altyapısı, UI, ilerleme kaydı, tile mantığı, prefab düzeni.
+
+## Savaş akışı ve hasar (hızlı akış)
+- Düşmanlar çok ve kolay ölür. Düşman canı "can puanı" (Orc1 20, Orc2 24, Orc3 40; `EnemyStats.maxHealth`). Oyuncunun kalp sistemi ayrıdır, düşman hasarı oyuncuya kalp parçası olarak biner.
+- Oyuncu skill hasarı kademeye göre aralıktır (`SkillDefinition.tierDamage`): Asa K1 9-13, K2 22-28, K3 40-48; Büyü Topu K1 8-12, K2 18-24, K3 36-44. K1'de Orc1 ~2 vuruş, K2'de çoğu düşman 1 vuruş.
+- Her vuruş: taban × rastgele 0.85-1.2, %12 ihtimalle kritik ×1.6 (`DamageRoll`). Asa kombosunun 3. vuruşu ×1.4. Kademe `SkillManager.GetTier/SetTier` ile tutulur (skill ağacı kademe açınca çağırır).
+- Düşmana hasar verilince yüzen sayı çıkar (beyaz, kritik büyük turuncu, Büyü Topu mavi).
+- Test: `EnemySpawner` oyuncu çevresinde ekran dışında düşman üretir (en fazla 15).

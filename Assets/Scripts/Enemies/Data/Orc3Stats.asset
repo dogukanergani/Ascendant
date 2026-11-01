@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8da63e857f55862409d4d0864060ec7d, type: 3}
   m_Name: Orc3Stats
   m_EditorClassIdentifier: 
+  maxHealth: 40
   patrolSpeed: 0.6
-  chaseSpeed: 1.3
+  chaseSpeed: 2.4
   patrolRadius: 2.5
   patrolWait: 1.2
-  sightRange: 5
-  loseSightFactor: 1.3
+  sightRange: 14
+  loseSightFactor: 1.5
   attackRange: 1.2
-  attackCooldown: 1.8
+  attackCooldown: 1.4
   damage: 2
   knockbackSpeed: 9
   telegraphTime: 0
@@ -27,7 +28,7 @@ MonoBehaviour:
   attackDuration: 0.65
   hitRadius: 1.1
   recoveryTime: 0.8
-  hurtStun: 0.15
+  hurtStun: 0.12
   hurtKnockbackSpeed: 4
   staggerResistance: 0.7
   deathDuration: 0.9
