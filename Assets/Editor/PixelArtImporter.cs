@@ -34,6 +34,16 @@ public class PixelArtImporter : AssetPostprocessor
         importer.textureCompression = TextureImporterCompression.Uncompressed;
         importer.spritePixelsPerUnit = PixelsPerUnit;
         importer.mipmapEnabled = false;
+
+        // Tiled SpriteRenderers (parallax layers) need full-rect meshes.
+        if (Path.GetFileNameWithoutExtension(assetPath).ToLowerInvariant().StartsWith(ParallaxPrefix))
+        {
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            settings.wrapMode = TextureWrapMode.Repeat;
+            importer.SetTextureSettings(settings);
+        }
     }
 
     // Sprite rects can only be persisted once the texture is imported, so slicing happens here
@@ -97,6 +107,8 @@ public class PixelArtImporter : AssetPostprocessor
         {
             cellW = cellH = SmallCellSize;
         }
+        // Tilemap cells anchor sprites at their pivot, so tiles need a centered one.
+        bool centerPivot = lowerName.StartsWith("tileset_");
         int columns = texture.width / cellW;
         int rows = texture.height / cellH;
 
@@ -110,8 +122,8 @@ public class PixelArtImporter : AssetPostprocessor
                 {
                     name = $"{fileName}_{index}",
                     rect = new Rect(col * cellW, texture.height - (row + 1) * cellH, cellW, cellH),
-                    alignment = SpriteAlignment.BottomCenter,
-                    pivot = new Vector2(0.5f, 0f),
+                    alignment = centerPivot ? SpriteAlignment.Center : SpriteAlignment.BottomCenter,
+                    pivot = centerPivot ? new Vector2(0.5f, 0.5f) : new Vector2(0.5f, 0f),
                     spriteID = GUID.Generate(),
                 });
                 index++;
@@ -138,7 +150,7 @@ public class PixelArtImporter : AssetPostprocessor
 
         for (int i = 0; i < existing.Length; i++)
         {
-            if (existing[i].name != wanted[i].name || existing[i].rect != wanted[i].rect)
+            if (existing[i].name != wanted[i].name || existing[i].rect != wanted[i].rect || existing[i].pivot != wanted[i].pivot)
                 return false;
         }
         return true;
