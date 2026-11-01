@@ -17,8 +17,8 @@ public sealed class DamageNumberSpawner : MonoBehaviour
     // Numbers closer than this to a new one are pushed up so they do not overlap.
     [SerializeField] float stackSpacing = 0.2f;
     // World scale of the text; a critical is about 1.3x a normal number.
-    [SerializeField] float normalScale = 0.28f;
-    [SerializeField] float critScale = 0.37f;
+    [SerializeField] float normalScale = 0.16f;
+    [SerializeField] float critScale = 0.21f;
     [SerializeField] Color normalColor = Color.white;
     [SerializeField] Color critColor = new(1f, 0.65f, 0.1f);
     [SerializeField] Color spellColor = new(0.45f, 0.75f, 1f);
@@ -36,19 +36,19 @@ public sealed class DamageNumberSpawner : MonoBehaviour
 
     void ApplyCurrentTuning()
     {
-        if (tuningVersion >= 1)
+        if (tuningVersion >= 2)
         {
             return;
         }
 
-        tuningVersion = 1;
+        tuningVersion = 2;
         lifetime = 0.55f;
         riseSpeed = 1.0f;
         horizontalSpread = 0.25f;
-        headOffset = 0.8f;
-        stackSpacing = 0.2f;
-        normalScale = 0.28f;
-        critScale = 0.37f;
+        headOffset = 0.7f;
+        stackSpacing = 0.12f;
+        normalScale = 0.16f;
+        critScale = 0.21f;
     }
 
     void Awake()
