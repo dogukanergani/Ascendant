@@ -179,6 +179,7 @@ public static class DungeonDressing
             // wall_8 rows 1-2 are plain cobble (the dark wall face), wall_3 is the 1-tile-wide block column used for side walls.
             // All of them tile seamlessly over 4 cells, so they are picked by world x / y modulo 4.
             string sfx = boss ? "_boss" : "";
+            MakeTile($"CP_post{sfx}", Sheet("wall_9", 0), tint);
             for (int col = 0; col < 4; col++)
             {
                 MakeTile($"CP_cap_{col}{sfx}", Sheet("wall_1", col), tint);
@@ -272,7 +273,7 @@ public static class DungeonDressing
             string name = null;
             if (F(w.x - 1, w.y) || F(w.x + 1, w.y))
             {
-                name = $"CP_side_{Mod4(w.y)}";
+                name = $"CP_side_{3 - Mod4(w.y)}";
             }
 
             if (name == null)
@@ -298,7 +299,7 @@ public static class DungeonDressing
 
                 if (columnNearby)
                 {
-                    name = $"CP_side_{Mod4(w.y)}";
+                    name = $"CP_side_{3 - Mod4(w.y)}";
                 }
             }
 
@@ -313,7 +314,28 @@ public static class DungeonDressing
             }
         }
 
-        return result;
+        // Second pass: neighbour mask. The first pass decided the kind of every wall cell (side column, face, cap, bottom
+        // cap); here the 4 orthogonal neighbours in the wall set pick the piece, so no strip ends "in the air":
+        //   column, wall above and below  -> column strip (3 - y%4)     column with no wall above or below -> post block
+        //   bottom cap, walls W and E     -> cap strip (x%4)            bottom cap with no wall W or E      -> post block
+        //   face / cap rows               -> unchanged (columns flank them)
+        var refined = new Dictionary<Vector2Int, string>(result);
+        foreach (KeyValuePair<Vector2Int, string> kv in result)
+        {
+            Vector2Int p = kv.Key;
+            bool n = result.ContainsKey(p + Vector2Int.up), s = result.ContainsKey(p + Vector2Int.down);
+            bool e = result.ContainsKey(p + Vector2Int.right), w = result.ContainsKey(p + Vector2Int.left);
+            if (kv.Value.StartsWith("CP_side_") && (!n || !s))
+            {
+                refined[p] = "CP_post";
+            }
+            else if (kv.Value.StartsWith("CP_cap_") && F(p.x, p.y + 1) && (!e || !w))
+            {
+                refined[p] = "CP_post";
+            }
+        }
+
+        return refined;
     }
 
     // ---- generated sprites (doors, exit pad) ----
