@@ -15,6 +15,12 @@ public class PixelArtImporter : AssetPostprocessor
 
     static readonly string[] SheetKeywords = { "_sheet", "idle", "run", "jump", "attack" };
 
+    // Environment and enemy art: tileset_/slime_/bat_ sheets use 32x32 cells,
+    // parallax_ images are kept as one full-size sprite.
+    static readonly string[] SmallCellPrefixes = { "tileset_", "slime_", "bat_" };
+    const string ParallaxPrefix = "parallax_";
+    const int SmallCellSize = 32;
+
     void OnPreprocessTexture()
     {
         if (!IsArtPng(assetPath))
@@ -51,12 +57,24 @@ public class PixelArtImporter : AssetPostprocessor
     static bool IsSheetName(string fileName)
     {
         string lower = fileName.ToLowerInvariant();
+        if (lower.StartsWith(ParallaxPrefix) || GetSmallCellPrefix(lower) != null)
+            return true;
         foreach (string keyword in SheetKeywords)
         {
             if (lower.Contains(keyword))
                 return true;
         }
         return false;
+    }
+
+    static string GetSmallCellPrefix(string lowerName)
+    {
+        foreach (string prefix in SmallCellPrefixes)
+        {
+            if (lowerName.StartsWith(prefix))
+                return prefix;
+        }
+        return null;
     }
 
     // Cells are counted from the top-left of the sheet, texture rects start at the bottom-left.
@@ -68,8 +86,19 @@ public class PixelArtImporter : AssetPostprocessor
             return;
 
         string fileName = Path.GetFileNameWithoutExtension(path);
-        int columns = texture.width / CellSize;
-        int rows = texture.height / CellSize;
+        string lowerName = fileName.ToLowerInvariant();
+        int cellW = CellSize, cellH = CellSize;
+        if (lowerName.StartsWith(ParallaxPrefix))
+        {
+            cellW = texture.width;
+            cellH = texture.height;
+        }
+        else if (GetSmallCellPrefix(lowerName) != null)
+        {
+            cellW = cellH = SmallCellSize;
+        }
+        int columns = texture.width / cellW;
+        int rows = texture.height / cellH;
 
         var wanted = new List<SpriteRect>();
         int index = 0;
@@ -80,7 +109,7 @@ public class PixelArtImporter : AssetPostprocessor
                 wanted.Add(new SpriteRect
                 {
                     name = $"{fileName}_{index}",
-                    rect = new Rect(col * CellSize, texture.height - (row + 1) * CellSize, CellSize, CellSize),
+                    rect = new Rect(col * cellW, texture.height - (row + 1) * cellH, cellW, cellH),
                     alignment = SpriteAlignment.BottomCenter,
                     pivot = new Vector2(0.5f, 0f),
                     spriteID = GUID.Generate(),
