@@ -10,23 +10,50 @@ public sealed class DamageNumberSpawner : MonoBehaviour
     [SerializeField] int poolSize = 40;
     // Above world sprites; the HUD canvas is a screen-space overlay and always draws over this.
     [SerializeField] int sortingOrder = 5000;
-    [SerializeField] float lifetime = 0.6f;
-    [SerializeField] float riseSpeed = 1.6f;
-    [SerializeField] float horizontalSpread = 0.35f;
-    [SerializeField] float headOffset = 0.9f;
+    [SerializeField] float lifetime = 0.55f;
+    [SerializeField] float riseSpeed = 1.0f;
+    [SerializeField] float horizontalSpread = 0.25f;
+    [SerializeField] float headOffset = 0.8f;
     // Numbers closer than this to a new one are pushed up so they do not overlap.
-    [SerializeField] float stackSpacing = 0.32f;
-    [SerializeField] float normalScale = 0.5f;
-    [SerializeField] float critScale = 0.85f;
+    [SerializeField] float stackSpacing = 0.2f;
+    // World scale of the text; a critical is about 1.3x a normal number.
+    [SerializeField] float normalScale = 0.28f;
+    [SerializeField] float critScale = 0.37f;
     [SerializeField] Color normalColor = Color.white;
     [SerializeField] Color critColor = new(1f, 0.65f, 0.1f);
     [SerializeField] Color spellColor = new(0.45f, 0.75f, 1f);
     [SerializeField] Color spellCritColor = new(0.55f, 0.95f, 1f);
 
+    // Scenes saved before the numbers were shrunk still carry the old, larger values; tuningVersion 0 marks them.
+    [SerializeField, HideInInspector] int tuningVersion;
+
     readonly List<DamageNumber> pool = new();
+
+    void OnValidate()
+    {
+        ApplyCurrentTuning();
+    }
+
+    void ApplyCurrentTuning()
+    {
+        if (tuningVersion >= 1)
+        {
+            return;
+        }
+
+        tuningVersion = 1;
+        lifetime = 0.55f;
+        riseSpeed = 1.0f;
+        horizontalSpread = 0.25f;
+        headOffset = 0.8f;
+        stackSpacing = 0.2f;
+        normalScale = 0.28f;
+        critScale = 0.37f;
+    }
 
     void Awake()
     {
+        ApplyCurrentTuning();
         for (int i = 0; i < poolSize; i++)
         {
             GameObject item = new GameObject("DamageNumber");
@@ -80,7 +107,7 @@ public sealed class DamageNumberSpawner : MonoBehaviour
                 }
 
                 Vector2 p = other.transform.position;
-                if (Mathf.Abs(p.x - position.x) < 0.7f && Mathf.Abs(p.y - y) < stackSpacing)
+                if (Mathf.Abs(p.x - position.x) < 0.45f && Mathf.Abs(p.y - y) < stackSpacing)
                 {
                     blocked = true;
                     break;

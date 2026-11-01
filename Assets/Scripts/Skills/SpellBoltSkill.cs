@@ -6,6 +6,8 @@ public sealed class SpellBoltSkill : SkillAbility
     [SerializeField] float spawnDistance = 0.6f;
     [SerializeField] Vector2 spawnOffset = new(0f, 0.3f);
     [SerializeField] LayerMask wallMask = 1 << 11;
+    // Blast radius per tier (index 0 = tier 1); the last entry is used for higher tiers.
+    [SerializeField] float[] tierSplashRadius = { 1.5f, 2.0f, 2.6f };
 
     SkillManager manager;
 
@@ -36,7 +38,10 @@ public sealed class SpellBoltSkill : SkillAbility
         DamageInfo damage = DamageRoll.Roll(range, 1f, Vector2.zero, DamageSource.Spell);
 
         SpellBolt bolt = Instantiate(boltPrefab, origin, Quaternion.identity);
-        bolt.Launch(Player.Facing, damage, release);
+        float radius = tierSplashRadius != null && tierSplashRadius.Length > 0
+            ? tierSplashRadius[Mathf.Clamp(tier - 1, 0, tierSplashRadius.Length - 1)]
+            : -1f;
+        bolt.Launch(Player.Facing, damage, release, radius);
         return true;
     }
 }
