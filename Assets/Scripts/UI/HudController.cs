@@ -173,7 +173,8 @@ public sealed class HudController : MonoBehaviour
 
     void AddSlot(SkillDefinition definition)
     {
-        if (slots.ContainsKey(definition.SkillId))
+        // Skills without an icon (the staff for now) get no slot.
+        if (definition.Icon == null || slots.ContainsKey(definition.SkillId))
         {
             return;
         }

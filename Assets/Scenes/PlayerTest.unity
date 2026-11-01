@@ -371,6 +371,8 @@ GameObject:
   - component: {fileID: 328222751}
   - component: {fileID: 328222750}
   - component: {fileID: 328222749}
+  - component: {fileID: 328222753}
+  - component: {fileID: 328222752}
   m_Layer: 10
   m_Name: Player
   m_TagString: Untagged
@@ -589,6 +591,49 @@ MonoBehaviour:
   maxHearts: 5
   partsPerHeart: 2
   invulnerabilityTime: 0.6
+--- !u!114 &328222752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328222734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e33ec76f43391814b915cd71996d1e4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  reloadDelay: 1.5
+--- !u!114 &328222753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 328222734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f1963cd78117cb449a99ae1926c3637, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 1e0caecf31b4ca6448a2dd50a3c14a9a, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 512
+  comboDamage: 010000000100000002000000
+  comboKnockback:
+  - 4
+  - 4
+  - 8
+  hitDelay: 0.1
+  swingInterval: 0.25
+  comboWindow: 0.5
+  moveSpeedFactor: 0.4
+  hitCenterOffset: {x: 0, y: 0.3}
+  hitReach: 0.7
+  hitSize: {x: 0.9, y: 1.1}
+  hitStopTime: 0.04
+  flashMaterial: {fileID: 2100000, guid: 7532b03a1b5fd5c45afd12eb9f7878b7, type: 2}
 --- !u!1 &566501525
 GameObject:
   m_ObjectHideFlags: 0
@@ -1797,6 +1842,7 @@ MonoBehaviour:
   catalog:
   - {fileID: 11400000, guid: fd8889df847be4745adb226a42f469c2, type: 2}
   - {fileID: 11400000, guid: 145cb46b04fd2084ca76b3b9d87d7196, type: 2}
+  - {fileID: 11400000, guid: 1e0caecf31b4ca6448a2dd50a3c14a9a, type: 2}
 --- !u!4 &1683219192
 Transform:
   m_ObjectHideFlags: 0

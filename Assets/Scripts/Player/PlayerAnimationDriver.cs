@@ -23,13 +23,11 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
 
     PlayerController2D player;
     DashSkill dash;
-    PlayerInputReader input;
 
     void Awake()
     {
         player = GetComponent<PlayerController2D>();
         dash = GetComponent<DashSkill>();
-        input = GetComponent<PlayerInputReader>();
         if (animator == null)
         {
             animator = GetComponentInChildren<Animator>();
@@ -46,11 +44,6 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnEnable()
     {
         player.Hurt += OnHurt;
-        if (input != null)
-        {
-            input.AttackPressed += PlayAttack;
-        }
-
         if (dash != null)
         {
             dash.Dashed += OnDashed;
@@ -60,11 +53,6 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnDisable()
     {
         player.Hurt -= OnHurt;
-        if (input != null)
-        {
-            input.AttackPressed -= PlayAttack;
-        }
-
         if (dash != null)
         {
             dash.Dashed -= OnDashed;
@@ -84,7 +72,7 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
         }
     }
 
-    // Fired by the attack input for now; the real weapon skill will call it too.
+    // Called by the staff attack skill when a swing starts.
     public void PlayAttack()
     {
         SetTrigger(AttackHash);
