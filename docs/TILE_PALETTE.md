@@ -72,18 +72,24 @@ Level'ın doğusunda (x 41-56, y -1..12) küçük bir örnek oda boyalı: kalın
 * `Tools > Level > Build Dungeon Palettes`: tile asset'lerini, palette'leri ve yeni prop prefab'larını (paketten) yeniden kurar; paketi yeniden import edersen çalıştır.
 * `Tools > Level > Setup Level_01 For Painting`: Level_01'i boyanabilir hale getirir (zaten yapıldı; yeniden çalıştırmak Ground/Walls'ı temizler!). Eski otomatik düzen için `Level_01_Auto.unity`.
 
-## 10. Boyanmış Level_01 ve `Tools/Level/Paint Level_01`
+## 10. Level_01 şablonu ve elle aynısını çizmek
 
-Level_01 koddan boyandı (`LevelPainter.cs`), paketin tanıtım görselindeki dizilişle. Zemin olmayan her hücre kayadır ve parçasını kendisi seçer:
+Level_01 tek, sade bir oda şablonuyla koddan boyandı (`Tools/Level/Paint Level_01`, `LevelPainter.cs`). Tüm odalar düz dikdörtgen, koridorlar 2 hücre ve `Door_*` nesneleriyle hizalı. Dışarısı boş (kamera arka planı).
 
-* **Yüz**: altında 1-4 hücre içinde zemin olan kaya. `wall_1` sayfasının 4 satırı (üstte taş kapak, kaya, zemine oturan pürüzlü alt kenar); alçak duvarda aynı sayfanın daha az satırı. Paletteki `WL_1_*`.
-* **Sütun**: yanında zemin ya da yüz olan (veya köşeden zemine değen) kaya. 1 hücre genişlikte taş blok sütunu (`WL_3_*`); oda yanları, koridor kenarları, duvar uçları.
-* **Kapak şeridi**: hemen üstünde zemin olan kaya (yukarıdaki odadan görülen duvar): `WL_4_*`.
-* **Kaya üstü**: geri kalan her şey; koyu kaya (`BD_*`). Bu da `Walls`'ta ve collider'lı (dışarısı tek parça). 1-2 hücrelik ince boşluklar sütun / kapak taşıyla doldurulur.
-* Yüzün dibindeki zemin satırı gölgelidir (`CP_shadow_*`). Boss bölgesi kırmızı tonludur (`*_boss`).
+Bir oda şöyle çizilir (paletteki tile adlarıyla; hepsi `Walls` Tilemap'ine):
 
-Odalar: alkovlar, yan duvardan çıkan 3 satırlık duvar parçaları (serbest ucunda sütun), alt duvardan yükselen 1 hücrelik sütunlar. Ayrıca üç kemerli kapı süsü (`Walls/ArchBlockers` kapatır), yüz diplerinde meşale ve mercan otu, köşelerde sandık/fıçı/kasa grupları, sütun prop'ları, boss odasında altın yığınları ve sancaklar var.
+| Yer | Kalınlık | Tile | Nasıl |
+|---|---|---|---|
+| Üst duvar | 4 satır | `WL_1_*` (Dungeon_Walls'ta wall_1 bloğu) | 4x4 bloğun tamamını seç, odanın üstüne yan yana damgala. Üst satır kapak, alt satır zemine oturan kenar. **Bloğu dikeyde üst üste koyma** (kaya deseni dikeyde dikişli); 4 satırdan fazlası olmaz. |
+| Yan duvarlar | 3 hücre | iç ve dış kenarda `WL_3_*` sütun, ortada `WL_4_*` taş | `WL_3` sütun bloğunu (1x4) dikey damgala. Sütun, üst duvarın kapak satırına kadar çıkar. |
+| Alt duvar | 3 satır | `WL_4_*` taş şerit | Satır satır damgala; her ikinci satırı 2 hücre kaydır (tuğla örgüsü). Uçlarda dış sütun. |
+| Sütun ucu | 1 hücre | `WL_9_0` (tek blok) | Bir sütun koridora ya da boşluğa bitiyorsa son hücresine. |
+| Kemerli kapı | 4x4 | `WL_10/WL_11` | Üst duvarın ortasına (4 satırın tamamı). Arkasına `Backdrop`'a aynı yere `WL_1` boya; geçilmez olması için `Walls/ArchBlockers` gibi bir BoxCollider2D koy. |
+| Duvar altı | | `Mortar` (Tiles klasörü) | `Backdrop` Tilemap'inde tüm duvar hücrelerinin altına (kenar boşlukları koyu ve temiz görünür). |
+| Zemin | | `CP_floor_*` (`Ground`) | Palette 4x4 bloğu seçip damgala; üst duvarın hemen altındaki satıra `CP_shadow_*`. |
 
-Menü komutu `Ground/Decor/Walls/WallTop/Backdrop/Props` içeriğini **siler** ve baştan boyar; elle değişiklik yaptıktan sonra çalıştırma. Oda/alkov/çıkıntı yerleşimi ve prop grupları `LevelPainter.cs` başındaki tablolarda. `Tools/Level/Render Level_01 Shots` Edit modunda `Assets/Screenshots/lvl_*.png` (oda başına geniş plan) ve `game_*.png` (oyun kamerası boyutu) render'larını üretir.
+Koridor: duvardan 2 hücrelik zemin aç. Yan duvardan geçen koridorun üstü 4 satır `WL_1` yüz, altı `WL_4`. Üst/alt duvardan geçen koridorun iki yanı `WL_3` sütun.
 
-Elle aynı görünümü boyamak için: oda yanına `WL_3` sütunu, oda üstüne 4 satır `WL_1` (kapak en üstte), oda altına `WL_4` kapak şeridi, dışarıya `BD_*` koy. `Wall_Auto` bu ayrımı yapamaz (zemini görmez), hızlı taslak için kalır.
+Props: üst duvara simetrik 2 meşale (`Torch`, kapının iki yanında), köşelere 2-4 parça (fıçı/kasa/sandık), kapı ve koridor ağızlarını boş bırak. Boss odası aynı şablon, `*_boss` (kırmızı) tile'lar, sancak ve altın yığını.
+
+Menü komutu `Ground/Decor/Walls/WallTop/Backdrop/Props` içeriğini **siler** ve baştan boyar; elle değişiklik yaptıktan sonra çalıştırma. Oda/koridor rect'leri ve prop listesi `LevelPainter.cs` başında. `Tools/Level/Render Level_01 Shots` Edit modunda `Assets/Screenshots/lvl_*.png` ve `game_*.png` render'larını üretir.

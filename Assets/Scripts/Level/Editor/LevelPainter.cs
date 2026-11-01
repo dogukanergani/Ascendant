@@ -1,64 +1,54 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-// Paints Level_01 with the Craftpix dungeon pieces from code (Tools/Level/Paint Level_01), so it can be regenerated.
-// Everything that is not floor is rock; each rock cell picks its piece the way the pack's preview is built:
-//   face    rock with floor 1-4 cells below it: the 4-row wall_1 sheet (stone cap on top, cobble, ragged bottom edge);
-//           a lower wall uses fewer rows of the same sheet (cap + bottom edge stay)
-//   column  rock beside floor, or beside a face, or diagonal to floor: the 1-wide stone block column (wall_3)
-//   cap     rock with floor right above it (a wall seen from the room above): the stone cap strip (wall_4)
-//   top     everything else: dark cobble "top of the rock" (solid like the rest, never reachable)
-// Floor under a face gets the pack's shadow cells. Rooms keep their Room trigger area; stubs, alcoves and props break
-// up the boxes. Clears Ground / Decor / Walls / WallTop / Backdrop / Props first.
+// Paints Level_01 from code (Tools/Level/Paint Level_01) with one plain room template, built from the Craftpix pieces
+// that tile without seams:
+//   top wall    4 rows above the room: the pack's wall_1 sheet as drawn (stone cap, cobble, cobble, ragged foot).
+//               The cobble only tiles horizontally, so it is never stacked.
+//   side walls  3 wide: stone block column (wall_3) on the inner and outer edge, cap stones (wall_4) between.
+//   bottom wall 3 rows of cap stones in running bond, ended by the outer columns.
+//   corners     the side columns run the full height; a column end that touches nothing gets the single block (wall_9).
+// Under every wall cell lies a flat dark "mortar" tile, so transparent edges read as a clean dark outline. Outside the
+// walls is empty (camera background). Rooms are plain rectangles; corridors are 2 cells, lined up with the Door objects.
+// Clears Ground / Decor / Walls / WallTop / Backdrop / Props first.
 public static class LevelPainter
 {
     const string TileFolder = "Assets/Art/Environment/TopDown/Tiles";
     const string PropFolder = "Assets/Prefabs/Environment/Props";
-    const int FaceRows = 4, BackdropPad = 10;
+    const string SolidPng = "Assets/Level/Guide/solid_cell.png";
+    const int Side = 3, Below = 3, Above = 4;
     static readonly Color BossTint = new(1f, 0.72f, 0.74f, 1f);
+    static readonly Color Mortar = new(0.075f, 0.065f, 0.1f, 1f);
 
     struct R
     {
         public int x0, y0, x1, y1;
         public R(int x0, int y0, int x1, int y1) { this.x0 = x0; this.y0 = y0; this.x1 = x1; this.y1 = y1; }
         public bool Contains(Vector2Int c) => c.x >= x0 && c.x <= x1 && c.y >= y0 && c.y <= y1;
+        public float CenterX => (x0 + x1 + 1) * 0.5f;
     }
 
-    // Floor: room rims (room trigger + 1 cell), corridors, alcoves. Inclusive cell rects.
-    static readonly R[] Rooms = { new(-6, -4, 5, 3), new(10, -6, 27, 5), new(12, 10, 25, 19), new(-14, 8, 7, 21), new(-14, 26, 5, 41) };
+    // Floor rects: Room trigger + 1 cell (rooms 0-3, boss, then the reference room east of the level) and corridors.
+    static readonly R[] Rooms = { new(-6, -4, 5, 3), new(10, -6, 27, 5), new(12, 10, 25, 19), new(-14, 8, 7, 21), new(-14, 26, 5, 41), new(44, 2, 53, 8) };
     static readonly R[] Corridors = { new(5, -1, 10, 0), new(18, 5, 19, 10), new(7, 14, 12, 15), new(-4, 21, -3, 26) };
-    static readonly R[] Alcoves =
-    {
-        new(-9, -2, -7, 0), new(12, 6, 15, 7), new(20, -9, 24, -7), new(15, 20, 18, 22), new(26, 13, 28, 16),
-        new(-12, 22, -8, 23), new(-17, 32, -15, 36), new(6, 30, 8, 34), new(-9, 42, -6, 44),
-    };
+    const int BossRoom = 4;
 
-    // Rock cut back into the floor: wall stubs from the side walls (3 rows: a short wall with a column at its free
-    // end) and 1-wide block columns standing on the bottom walls.
-    static readonly R[] Solids =
-    {
-        new(24, -1, 27, 1), new(15, -6, 15, -4),
-        new(22, 11, 25, 13), new(15, 10, 15, 12),
-        new(-14, 14, -10, 16), new(3, 17, 7, 19), new(-9, 8, -9, 10), new(1, 8, 1, 10),
-        new(-10, 26, -10, 28), new(1, 26, 1, 28),
-    };
+    // Arch gate in the top wall of the rooms that have no corridor there (index into Rooms).
+    static readonly int[] ArchRooms = { 0, 2, 4, 5 };
 
-    // Arch gates (bottom-left cell of the 4 x 4 gate) set into a 4 row face.
-    static readonly Vector2Int[] Arches = { new(-4, 4), new(21, 20), new(0, 42) };
+    enum Kind { Floor, Face, Column, Stone }
 
-    enum Kind { Floor, Face, Column, Cap, Top }
-
-    // Red theme: the boss room block and its entrance corridor (room 3's top wall stays grey as one piece).
-    static bool IsBoss(int x, int y) => (y >= 26 && x <= 10) || (y >= 22 && x >= -5 && x <= -2);
+    static bool IsBoss(int x, int y) => y >= 26 && x <= 10;
 
     static int Mod4(int v) => ((v % 4) + 4) % 4;
 
     static TileBase T(string name) => AssetDatabase.LoadAssetAtPath<TileBase>($"{TileFolder}/{name}.asset");
 
-    // A wall piece, red-tinted inside the boss area (tinted copies are created next to the originals).
+    // A wall piece, red-tinted inside the boss area (tinted copies live next to the originals).
     static TileBase Piece(string name, bool boss)
     {
         if (!boss)
@@ -81,31 +71,50 @@ public static class LevelPainter
         return tile;
     }
 
-    static TileBase TopRock(int x, int y, bool boss)
+    // Flat dark tile under the walls (own 16 px white square, outside Assets/Art so PixelArtImporter leaves it alone).
+    static Tile MortarTile()
     {
-        int i = 4 + Mod4(y) % 2 * 4 + Mod4(x);
-        string name = $"BD_{i}{(boss ? "_boss" : "")}";
-        var tile = AssetDatabase.LoadAssetAtPath<Tile>($"{TileFolder}/{name}.asset");
+        if (!File.Exists(SolidPng))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(SolidPng));
+            var tex = new Texture2D(16, 16, TextureFormat.RGBA32, false);
+            var pixels = new Color[256];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = Color.white;
+            tex.SetPixels(pixels);
+            File.WriteAllBytes(SolidPng, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(SolidPng);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(SolidPng);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = 16;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+        }
+
+        string path = $"{TileFolder}/Mortar.asset";
+        var tile = AssetDatabase.LoadAssetAtPath<Tile>(path);
         if (tile == null)
         {
             tile = ScriptableObject.CreateInstance<Tile>();
-            AssetDatabase.CreateAsset(tile, $"{TileFolder}/{name}.asset");
+            AssetDatabase.CreateAsset(tile, path);
         }
 
-        tile.colliderType = Tile.ColliderType.Grid;
-        tile.sprite = ((Tile)T($"WL_8_{i}")).sprite;
-        tile.color = boss ? new Color(0.42f, 0.24f, 0.26f) : new Color(0.36f, 0.36f, 0.42f);
+        tile.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SolidPng);
+        tile.color = Mortar;
+        tile.colliderType = Tile.ColliderType.None;
         EditorUtility.SetDirty(tile);
         return tile;
     }
 
-    static void Add(HashSet<Vector2Int> set, R r, bool remove = false)
+    static void Add(HashSet<Vector2Int> set, R r)
     {
         for (int x = r.x0; x <= r.x1; x++)
         {
             for (int y = r.y0; y <= r.y1; y++)
             {
-                if (remove) set.Remove(new Vector2Int(x, y)); else set.Add(new Vector2Int(x, y));
+                set.Add(new Vector2Int(x, y));
             }
         }
     }
@@ -115,34 +124,37 @@ public static class LevelPainter
         var floor = new HashSet<Vector2Int>();
         foreach (R r in Rooms) Add(floor, r);
         foreach (R r in Corridors) Add(floor, r);
-        foreach (R r in Alcoves) Add(floor, r);
-        foreach (R r in Solids) Add(floor, r, true);
         return floor;
     }
 
-    // Face rows: distance k to the floor below (through rock) and the height of that wall (rock run above the floor, max 4).
-    static bool FaceInfo(HashSet<Vector2Int> floor, Vector2Int c, out int k, out int height)
+    static HashSet<Vector2Int> BuildWalls(HashSet<Vector2Int> floor)
+    {
+        var walls = new HashSet<Vector2Int>();
+        foreach (R r in Rooms) Add(walls, new R(r.x0 - Side, r.y0 - Below, r.x1 + Side, r.y1 + Above));
+        walls.ExceptWith(floor);
+        return walls;
+    }
+
+    // Distance k (1-4) to the floor straight below and the height of that wall (rock run above the floor, max 4).
+    static bool FaceInfo(HashSet<Vector2Int> floor, HashSet<Vector2Int> walls, Vector2Int c, out int k, out int height)
     {
         k = 0;
         height = 0;
-        for (int d = 1; d <= FaceRows; d++)
+        for (int d = 1; d <= Above; d++)
         {
-            if (floor.Contains(new Vector2Int(c.x, c.y - d)))
-            {
-                k = d;
-                break;
-            }
+            var below = new Vector2Int(c.x, c.y - d);
+            if (floor.Contains(below)) { k = d; break; }
+            if (!walls.Contains(below)) return false;
         }
 
         if (k == 0) return false;
         int run = 0;
-        while (run < FaceRows && !floor.Contains(new Vector2Int(c.x, c.y - k + 1 + run))) run++;
+        while (run < Above && walls.Contains(new Vector2Int(c.x, c.y - k + 1 + run))) run++;
         height = run;
         return true;
     }
 
-    // Row of wall_1 for face row k (1 = bottom) of a wall `height` rows tall: always the cap on top and the ragged
-    // bottom edge at the floor, cobble rows in between.
+    // Row of wall_1 for face row k (1 = foot) of a wall `height` rows tall: cap on top, ragged foot at the floor.
     static int FaceSheetRow(int k, int height)
     {
         if (k == height) return 0;
@@ -150,27 +162,29 @@ public static class LevelPainter
         return height == 4 ? 4 - k : 1;
     }
 
-    static Kind Classify(HashSet<Vector2Int> floor, Vector2Int c, out int sheetRow)
+    static Kind Classify(HashSet<Vector2Int> floor, HashSet<Vector2Int> walls, Vector2Int c, out int sheetRow)
     {
         sheetRow = 0;
         if (floor.Contains(c)) return Kind.Floor;
         bool F(int dx, int dy) => floor.Contains(new Vector2Int(c.x + dx, c.y + dy));
+        bool Out(int dx, int dy) { var n = new Vector2Int(c.x + dx, c.y + dy); return !floor.Contains(n) && !walls.Contains(n); }
+
         if (F(-1, 0) || F(1, 0)) return Kind.Column;
-        if (FaceInfo(floor, c, out int k, out int h))
+        if (FaceInfo(floor, walls, c, out int k, out int h))
         {
             sheetRow = FaceSheetRow(k, h);
             return Kind.Face;
         }
 
-        if (F(0, 1)) return Kind.Cap;
         foreach (int dx in new[] { -1, 1 })
         {
             var side = new Vector2Int(c.x + dx, c.y);
-            if (!floor.Contains(side) && FaceInfo(floor, side, out _, out _)) return Kind.Column;
+            if (walls.Contains(side) && !F(dx, 0) && FaceInfo(floor, walls, side, out _, out _)) return Kind.Column;
         }
 
         if (F(-1, -1) || F(1, -1) || F(-1, 1) || F(1, 1)) return Kind.Column;
-        return Kind.Top;
+        if (Out(-1, 0) || Out(1, 0)) return Kind.Column;
+        return Kind.Stone;
     }
 
     static Tilemap Map(Transform grid, string name, int order)
@@ -200,9 +214,9 @@ public static class LevelPainter
 
         Transform grid = gridGo.transform;
         Tilemap ground = Map(grid, "Ground", -100), decor = Map(grid, "Decor", -95), walls = Map(grid, "Walls", -90);
-        Tilemap wallTop = Map(grid, "WallTop", 20), backdrop = Map(grid, "Backdrop", -92), props = Map(grid, "Props", 0);
-        backdrop.color = Color.white;
-        foreach (Tilemap m in new[] { ground, decor, walls, wallTop, backdrop })
+        Tilemap wallTop = Map(grid, "WallTop", 20), mortar = Map(grid, "Backdrop", -92), props = Map(grid, "Props", 0);
+        mortar.color = Color.white;
+        foreach (Tilemap m in new[] { ground, decor, walls, wallTop, mortar })
         {
             m.ClearAllTiles();
         }
@@ -213,80 +227,72 @@ public static class LevelPainter
         }
 
         HashSet<Vector2Int> floor = BuildFloor();
-        int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
-        foreach (Vector2Int f in floor)
-        {
-            minX = Mathf.Min(minX, f.x); maxX = Mathf.Max(maxX, f.x);
-            minY = Mathf.Min(minY, f.y); maxY = Mathf.Max(maxY, f.y);
-        }
-
+        HashSet<Vector2Int> wallCells = BuildWalls(floor);
+        Tile mortarTile = MortarTile();
         var kinds = new Dictionary<Vector2Int, Kind>();
-        var rows = new Dictionary<Vector2Int, int>();
-        int bx0 = minX - BackdropPad, bx1 = maxX + BackdropPad, by0 = minY - BackdropPad, by1 = maxY + BackdropPad;
-        for (int x = bx0; x <= bx1; x++)
-        {
-            for (int y = by0; y <= by1; y++)
-            {
-                var c = new Vector2Int(x, y);
-                kinds[c] = Classify(floor, c, out int row);
-                rows[c] = row;
-            }
-        }
-
-        FillNarrowTops(kinds);
-        DarkenShadows();
-
         var wPos = new List<Vector3Int>(); var wTiles = new List<TileBase>();
         var gPos = new List<Vector3Int>(); var gTiles = new List<TileBase>();
-        for (int x = bx0; x <= bx1; x++)
-        {
-            for (int y = by0; y <= by1; y++)
-            {
-                var c = new Vector2Int(x, y);
-                var p = new Vector3Int(x, y, 0);
-                bool boss = IsBoss(x, y);
-                Kind kind = kinds[c];
-                int row = rows[c];
-                int cell = (3 - Mod4(y)) * 4 + Mod4(x);
-                switch (kind)
-                {
-                    case Kind.Floor:
-                        bool shadow = !floor.Contains(c + Vector2Int.up);
-                        gPos.Add(p);
-                        gTiles.Add(T($"CP_{(shadow ? "shadow" : "floor")}_{cell}{(boss ? "_boss" : "")}"));
-                        continue;
-                    case Kind.Face:
-                        wPos.Add(p); wTiles.Add(Piece($"WL_1_{row * 4 + Mod4(x)}", boss));
-                        break;
-                    case Kind.Column:
-                        wPos.Add(p); wTiles.Add(Piece($"WL_3_{3 - Mod4(y)}", boss));
-                        break;
-                    case Kind.Cap:
-                        wPos.Add(p); wTiles.Add(Piece($"WL_4_{Mod4(x)}", boss));
-                        break;
-                    case Kind.Top:
-                        // On the Walls map too: one solid mass with only floor holes keeps the composite collider
-                        // simple (separate rock-top islands produced composite paths that dropped wall cells).
-                        wPos.Add(p); wTiles.Add(TopRock(x, y, boss));
-                        continue;
-                }
+        var mPos = new List<Vector3Int>();
 
-                // Walls stand on floor: their transparent edges show floor, not the dark rock top.
-                gPos.Add(p);
-                gTiles.Add(T($"CP_floor_{cell}{(boss ? "_boss" : "")}"));
+        foreach (Vector2Int c in floor)
+        {
+            bool boss = IsBoss(c.x, c.y);
+            int cell = (3 - Mod4(c.y)) * 4 + Mod4(c.x);
+            // The row right under a wall face sits in its shadow.
+            bool shadow = wallCells.Contains(c + Vector2Int.up) && FaceInfo(floor, wallCells, c + Vector2Int.up, out int k, out _) && k == 1;
+            gPos.Add(new Vector3Int(c.x, c.y, 0));
+            gTiles.Add(T($"CP_{(shadow ? "shadow" : "floor")}_{cell}{(boss ? "_boss" : "")}"));
+        }
+
+        foreach (Vector2Int c in wallCells)
+        {
+            var p = new Vector3Int(c.x, c.y, 0);
+            bool boss = IsBoss(c.x, c.y);
+            Kind kind = Classify(floor, wallCells, c, out int row);
+            kinds[c] = kind;
+            mPos.Add(p);
+            switch (kind)
+            {
+                case Kind.Face:
+                    wTiles.Add(Piece($"WL_1_{row * 4 + Mod4(c.x)}", boss));
+                    break;
+                case Kind.Column:
+                    wTiles.Add(Piece($"WL_3_{3 - Mod4(c.y)}", boss));
+                    break;
+                default:
+                    // Running bond: every other row of cap stones shifted by half a strip.
+                    wTiles.Add(Piece($"WL_4_{Mod4(c.x + (Mod4(c.y) % 2) * 2)}", boss));
+                    break;
+            }
+
+            wPos.Add(p);
+        }
+
+        // A column end that runs into nothing (corridor mouth, outer corner) gets the single stone block.
+        for (int i = 0; i < wPos.Count; i++)
+        {
+            var c = new Vector2Int(wPos[i].x, wPos[i].y);
+            if (kinds[c] != Kind.Column) continue;
+            bool colAbove = kinds.TryGetValue(c + Vector2Int.up, out Kind a) && a == Kind.Column;
+            bool colBelow = kinds.TryGetValue(c + Vector2Int.down, out Kind b) && b == Kind.Column;
+            bool endsUp = !wallCells.Contains(c + Vector2Int.up) || floor.Contains(c + Vector2Int.up);
+            bool endsDown = !wallCells.Contains(c + Vector2Int.down) || floor.Contains(c + Vector2Int.down);
+            if ((endsUp && !colAbove) || (endsDown && !colBelow))
+            {
+                wTiles[i] = Piece("WL_9_0", IsBoss(c.x, c.y));
             }
         }
 
         walls.SetTiles(wPos.ToArray(), wTiles.ToArray());
         ground.SetTiles(gPos.ToArray(), gTiles.ToArray());
+        var mTiles = new TileBase[mPos.Count];
+        for (int i = 0; i < mTiles.Length; i++) mTiles[i] = mortarTile;
+        mortar.SetTiles(mPos.ToArray(), mTiles);
 
-        PaintArches(walls, floor);
-        var rng = new System.Random(1234);
+        List<RectInt> archRects = PaintArches(walls, mortar);
+        var rng = new System.Random(77);
         PaintDecals(decor, floor, rng);
-        PlaceWallDressing(props, floor, kinds, rng);
-        PlaceClusters(props);
-
-        LevelPaintSetup.PaintSampleRoom(Map(grid, "Ground", -100), walls, decor, props);
+        PlaceProps(props, archRects);
 
         var player = Object.FindFirstObjectByType<PlayerController2D>();
         if (player != null)
@@ -294,8 +300,7 @@ public static class LevelPainter
             player.transform.position = Vector3.zero;
         }
 
-        // With the default offset the composite's convex decomposition dropped a cell next to an alcove; a slightly
-        // larger offset closes it.
+        // With the default offset the composite's convex decomposition can drop a cell; a slightly larger offset closes it.
         var composite = walls.GetComponent<CompositeCollider2D>();
         composite.offsetDistance = 0.005f;
         var tileCollider = walls.GetComponent<TilemapCollider2D>();
@@ -306,75 +311,39 @@ public static class LevelPainter
         AssetDatabase.SaveAssets();
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
-        Debug.Log($"LevelPainter: floor {floor.Count}, walls + rock {wPos.Count}.");
+        Debug.Log($"LevelPainter: floor {floor.Count}, walls {wPos.Count}.");
     }
 
-    // Slivers of rock top (1-2 cells) between two walls read as holes: widen the columns across them, and pave short
-    // vertical gaps with the cap strip, so the rock between neighbouring rooms reads as one thick wall.
-    static void FillNarrowTops(Dictionary<Vector2Int, Kind> kinds)
-    {
-        var snapshot = new Dictionary<Vector2Int, Kind>(kinds);
-        bool Solid(Vector2Int c) => snapshot.TryGetValue(c, out Kind k) && k != Kind.Top && k != Kind.Floor;
-        int Gap(Vector2Int c, Vector2Int dir)
-        {
-            for (int d = 1; d <= 3; d++)
-            {
-                var n = c + dir * d;
-                if (!snapshot.TryGetValue(n, out Kind k)) return 99;
-                if (k != Kind.Top) return Solid(n) ? d - 1 : 99;
-            }
-
-            return 99;
-        }
-
-        foreach (var kv in snapshot)
-        {
-            if (kv.Value != Kind.Top) continue;
-            Vector2Int c = kv.Key;
-            int left = Gap(c, Vector2Int.left), right = Gap(c, Vector2Int.right);
-            int down = Gap(c, Vector2Int.down), up = Gap(c, Vector2Int.up);
-            if (left < 99 && right < 99 && left + right + 1 <= 2) kinds[c] = Kind.Column;
-            else if (down < 99 && up < 99 && down + up + 1 <= 2) kinds[c] = Kind.Cap;
-        }
-    }
-
-    // The pack's shadow cells (floor under a wall face) a touch darker and less blue than the first dressing pass.
-    static void DarkenShadows()
-    {
-        for (int i = 0; i < 16; i++)
-        {
-            foreach (bool boss in new[] { false, true })
-            {
-                var tile = AssetDatabase.LoadAssetAtPath<Tile>($"{TileFolder}/CP_shadow_{i}{(boss ? "_boss" : "")}.asset");
-                if (tile == null) continue;
-                Color c = new(0.7f, 0.68f, 0.72f, 1f);
-                tile.color = boss ? c * BossTint : c;
-                EditorUtility.SetDirty(tile);
-            }
-        }
-    }
-
-    static void PaintArches(Tilemap walls, HashSet<Vector2Int> floor)
+    // 4 x 4 arch gate centred in the top wall; the arch tiles have no collider, a box keeps the gate solid.
+    static List<RectInt> PaintArches(Tilemap walls, Tilemap under)
     {
         Transform old = walls.transform.Find("ArchBlockers");
         if (old != null) Object.DestroyImmediate(old.gameObject);
         var blockers = new GameObject("ArchBlockers");
         blockers.transform.SetParent(walls.transform, false);
         blockers.layer = walls.gameObject.layer;
-        foreach (Vector2Int a in Arches)
+        var rects = new List<RectInt>();
+        foreach (int r in ArchRooms)
         {
+            R room = Rooms[r];
+            int x0 = Mathf.RoundToInt(room.CenterX) - 2, y0 = room.y1 + 1;
             for (int i = 0; i < 16; i++)
             {
                 int col = i % 4, row = i / 4;
+                var p = new Vector3Int(x0 + col, y0 + 3 - row, 0);
+                // The wall face continues behind the gate, so its transparent corners show cap and cobble, not mortar.
+                under.SetTile(p, Piece($"WL_1_{row * 4 + Mod4(p.x)}", IsBoss(p.x, p.y)));
                 TileBase tile = T(col < 2 ? $"WL_10_{i}" : $"WL_11_{i}");
-                if (tile != null) walls.SetTile(new Vector3Int(a.x + col, a.y + 3 - row, 0), tile);
+                if (tile != null) walls.SetTile(p, tile);
             }
 
-            // The arch tiles carry no collider; this keeps the gate solid.
             var box = blockers.AddComponent<BoxCollider2D>();
             box.size = new Vector2(4f, 4f);
-            box.offset = new Vector2(a.x + 2f, a.y + 2f);
+            box.offset = new Vector2(x0 + 2f, y0 + 2f);
+            rects.Add(new RectInt(x0, y0, 4, 4));
         }
+
+        return rects;
     }
 
     static bool NearCorridor(Vector2Int c, int margin)
@@ -387,144 +356,81 @@ public static class LevelPainter
         return false;
     }
 
-    static bool NearArch(Vector2Int c, int margin)
-    {
-        foreach (Vector2Int a in Arches)
-        {
-            if (c.x >= a.x - margin && c.x <= a.x + 3 + margin && c.y >= a.y - 1 - margin && c.y <= a.y + 4) return true;
-        }
+    static readonly string[] DecalNames = { "crack_a", "crack_b", "crack_a", "pebble_1", "pebble_4", "pebble_5", "moss_1" };
 
-        return false;
-    }
-
-    static readonly string[] Cracks = { "crack_a", "crack_b" };
-    static readonly string[] Pebbles = { "pebble_1", "pebble_2", "pebble_3", "pebble_4", "pebble_5" };
-    static readonly string[] Moss = { "moss_1", "moss_2", "moss_3", "moss_4", "moss_5" };
-    static readonly string[] Slime = { "slime_a", "slime_b", "slime_c" };
-
+    // A handful of cracks and pebbles per room, away from walls, corridors and props.
     static void PaintDecals(Tilemap decor, HashSet<Vector2Int> floor, System.Random rng)
     {
-        for (int r = 0; r < Rooms.Length; r++)
+        foreach (R room in Rooms)
         {
-            R room = Rooms[r];
-            bool boss = r == 4, rest = r == 0;
             int area = (room.x1 - room.x0 + 1) * (room.y1 - room.y0 + 1);
-            var plan = new List<string[]> ();
-            for (int i = 0; i < area / 22; i++) plan.Add(Cracks);
-            for (int i = 0; i < area / 30; i++) plan.Add(Pebbles);
-            for (int i = 0; i < area / 60; i++) plan.Add(Moss);
-            if (!rest) for (int i = 0; i < 1 + area / 140; i++) plan.Add(Slime);
-            foreach (string[] set in plan)
+            int count = Mathf.Clamp(area / 40, 3, 7);
+            for (int n = 0; n < count; n++)
             {
-                for (int tries = 0; tries < 12; tries++)
+                for (int tries = 0; tries < 20; tries++)
                 {
-                    var c = new Vector2Int(rng.Next(room.x0 + 1, room.x1), rng.Next(room.y0 + 1, room.y1));
-                    if (!floor.Contains(c) || NearCorridor(c, 1) || NearCluster(c) || decor.GetTile(new Vector3Int(c.x, c.y, 0)) != null) continue;
-                    if (!floor.Contains(c + Vector2Int.left) || !floor.Contains(c + Vector2Int.right)) continue;
-                    decor.SetTile(new Vector3Int(c.x, c.y, 0), T("DC_" + set[rng.Next(set.Length)]));
+                    var c = new Vector2Int(rng.Next(room.x0 + 2, room.x1 - 1), rng.Next(room.y0 + 2, room.y1 - 1));
+                    if (NearCorridor(c, 2) || NearProp(c)) continue;
+                    bool crowded = false;
+                    for (int dx = -2; dx <= 2 && !crowded; dx++)
+                        for (int dy = -2; dy <= 2 && !crowded; dy++)
+                            crowded = decor.GetTile(new Vector3Int(c.x + dx, c.y + dy, 0)) != null;
+                    if (crowded) continue;
+                    decor.SetTile(new Vector3Int(c.x, c.y, 0), T("DC_" + DecalNames[rng.Next(DecalNames.Length)]));
                     break;
                 }
             }
         }
 
-        // Loose treasure only around the boss room's hoards.
-        foreach (var (name, x, y) in new[] { ("gem_red", -5, 39), ("gem_blue", -2, 39), ("trophy", -4, 38), ("gem_gold", 3, 39), ("gem_purple", 5, 39), ("key_a", -11, 39), ("gem_green", -13, 40) })
+        foreach (var (name, x, y) in new[] { ("gem_red", -12, 39), ("gem_blue", -10, 40), ("gem_gold", 2, 39), ("gem_purple", 4, 39) })
         {
             if (floor.Contains(new Vector2Int(x, y))) decor.SetTile(new Vector3Int(x, y, 0), T("DC_" + name));
         }
     }
 
-    static void Spawn(Tilemap props, string name, float x, float y)
+    // name, x, y (prefab pivot is bottom centre). Torches sit symmetric on each top wall, the rest in corners away
+    // from doors, so spawns and the walk between doors stay open.
+    static readonly (string name, float x, float y)[] PropList =
     {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PropFolder}/{name}.prefab");
-        if (prefab == null)
-        {
-            Debug.LogWarning("LevelPainter: missing prop " + name);
-            return;
-        }
+        // rest room (top wall y 4..7, arch x -2..1)
+        ("Torch", -3.5f, 4.15f), ("Torch", 3.5f, 4.15f), ("Campfire", 2.5f, -1.8f), ("Barrel", 4.4f, -3.6f), ("Crate", 3.4f, -3.7f),
+        // room 1 (corridor through the top wall at x 18..19)
+        ("Torch", 13.5f, 6.15f), ("Torch", 24.5f, 6.15f), ("Barrel", 10.6f, -5.7f), ("Barrel", 11.6f, -5.5f), ("Crate", 10.6f, -4.6f), ("Chest", 26.4f, -5.5f),
+        // room 2 (arch x 17..20)
+        ("Torch", 14.5f, 20.15f), ("Torch", 23.5f, 20.15f), ("Crate", 24.4f, 18.4f), ("Crate", 23.5f, 18.6f), ("Barrel", 24.5f, 17.5f), ("Chest", 13.0f, 18.4f),
+        // room 3 (corridor through the top wall at x -4..-3)
+        ("Torch", -9.5f, 22.15f), ("Torch", 3.5f, 22.15f), ("Barrel", -13.4f, 8.5f), ("Barrel", -12.5f, 8.7f), ("Crate", 6.4f, 8.5f), ("Crate", 5.5f, 8.4f), ("Chest", -13.0f, 20.3f),
+        // boss (arch x -6..-3): torches, banners at the gate, hoards in the top corners, two pillars
+        ("Torch", -10.5f, 42.15f), ("Torch", 2.5f, 42.15f), ("Banner", -7.0f, 42.1f), ("Banner", -1.0f, 42.1f),
+        ("GoldPileA", -12.0f, 40.2f), ("GoldPileC", 3.0f, 40.3f), ("Pillar", -9.5f, 33.0f), ("Pillar", 0.5f, 33.0f),
+        // reference room (arch x 47..50)
+        ("Torch", 45.5f, 9.15f), ("Torch", 52.5f, 9.15f), ("Barrel", 44.6f, 2.4f), ("Crate", 45.6f, 2.5f), ("Chest", 52.5f, 2.6f),
+    };
 
-        var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, props.transform);
-        instance.transform.position = new Vector3(x, y, 0f);
-    }
-
-    // Along the foot of every tall face (as in the preview): torches on the face, coral and the odd boulder at its base.
-    static void PlaceWallDressing(Tilemap props, HashSet<Vector2Int> floor, Dictionary<Vector2Int, Kind> kinds, System.Random rng)
-    {
-        string[] coral = { "CoralA", "CoralB", "CoralC", "CoralD", "CoralBush" };
-        string[] boulders = { "RockA", "RockB", "RockC" };
-        var faceFoot = new List<Vector2Int>();
-        foreach (Vector2Int f in floor)
-        {
-            var up = f + Vector2Int.up;
-            if (kinds.TryGetValue(up, out Kind k) && k == Kind.Face && kinds.TryGetValue(up + Vector2Int.up, out Kind k2) && k2 == Kind.Face)
-            {
-                faceFoot.Add(f);
-            }
-        }
-
-        faceFoot.Sort((a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
-        int sinceTorch = 3;
-        Vector2Int prev = new(int.MinValue, int.MinValue);
-        foreach (Vector2Int f in faceFoot)
-        {
-            if (f.y != prev.y || f.x != prev.x + 1) sinceTorch = 3;
-            prev = f;
-            sinceTorch++;
-            if (NearArch(f, 0) || NearCorridor(f, 1)) continue;
-            bool insideRoom = false;
-            foreach (R room in Rooms) insideRoom |= room.Contains(f);
-            if (sinceTorch >= 6 && floor.Contains(f + Vector2Int.left) && floor.Contains(f + Vector2Int.right))
-            {
-                Spawn(props, "Torch", f.x + 0.5f, f.y + 1.1f);
-                sinceTorch = 0;
-                continue;
-            }
-
-            double roll = rng.NextDouble();
-            if (roll < 0.3) Spawn(props, coral[rng.Next(coral.Length)], f.x + 0.5f + (float)(rng.NextDouble() - 0.5) * 0.4f, f.y + 0.8f);
-            else if (roll < 0.38 && insideRoom && !NearCorridor(f, 3) && floor.Contains(f + Vector2Int.down * 2)) Spawn(props, boulders[rng.Next(boulders.Length)], f.x + 0.5f, f.y + 0.25f);
-        }
-    }
-
-    // Hand placed groups: storage corners, chests in alcoves, pillars, the boss hoard and banners at the gates.
-    static readonly (string name, float x, float y)[] Clusters =
-        {
-            // rest room: campfire, a sign, supplies
-            ("Campfire", 2.5f, -1.6f), ("Sign", -4.0f, 1.2f), ("Barrel", 4.3f, -3.4f), ("Crate", 3.3f, -3.5f), ("Planks", -1.0f, -3.5f), ("Chest", -8.0f, -1.6f),
-            ("Banner", -5.0f, 4.1f), ("Banner", 1.0f, 4.1f),
-            // room 1: storage in the south-west, chest in the south alcove, stub with barrels
-            ("Barrel", 10.5f, -5.6f), ("BarrelBig", 11.6f, -5.5f), ("Crate", 10.6f, -4.5f), ("Chest", 22.0f, -8.6f), ("BarrelGreen", 23.4f, -8.5f),
-            ("Pillar", 15.5f, 0.2f), ("Stump", 20.5f, 2.6f), ("Urn", 26.6f, 2.4f), ("GoldPileB", 13.5f, 6.2f),
-            // room 2
-            ("Crate", 12.6f, 18.4f), ("Crate", 13.5f, 18.6f), ("Barrel", 12.5f, 17.5f), ("Chest", 27.5f, 15.4f), ("Pillar", 19.0f, 15.5f),
-            ("BrickStackC", 16.5f, 21.2f), ("Banner", 20.0f, 20.1f), ("Banner", 26.0f, 20.1f),
-            // room 3
-            ("Chest", -10.0f, 22.4f), ("Barrel", -13.5f, 8.4f), ("Barrel", -12.6f, 8.6f), ("Crate", -13.4f, 9.4f), ("Crate", 6.3f, 8.4f),
-            ("BarrelBig", 5.2f, 8.5f), ("Pillar", -6.0f, 12.0f), ("Pillar", -1.0f, 13.0f), ("BrickStackA", 3.5f, 11.0f), ("RockTall", -12.0f, 19.5f),
-            ("Pitchfork", 6.5f, 20.3f), ("Bowl", -11.5f, 22.4f),
-            // boss: two rows of pillars, hoard by the gate, chests in the side alcoves
-            ("Pillar", -9.5f, 30.0f), ("Pillar", 0.5f, 30.0f), ("Pillar", -9.5f, 37.0f), ("Pillar", 0.5f, 37.0f),
-            ("GoldPileA", -3.5f, 40.2f), ("GoldPileC", 4.0f, 40.4f), ("GoldPileB", -12.0f, 40.3f), ("ChestGold", -16.0f, 35.6f), ("ChestBlack", 7.5f, 33.6f),
-            ("Banner", -1.0f, 42.1f), ("Banner", 5.0f, 42.1f), ("RuinWall", -12.0f, 27.2f), ("BrickStackB", 4.2f, 27.0f),
-        };
-
-    // Keeps random decals from sliding under the hand placed props.
-    static bool NearCluster(Vector2Int c)
+    static bool NearProp(Vector2Int c)
     {
         var center = new Vector2(c.x + 0.5f, c.y + 0.5f);
-        foreach (var (_, x, y) in Clusters)
+        foreach (var (_, x, y) in PropList)
         {
-            if (Vector2.Distance(center, new Vector2(x, y + 0.4f)) < 1.8f) return true;
+            if (Vector2.Distance(center, new Vector2(x, y + 0.4f)) < 2f) return true;
         }
 
         return false;
     }
 
-    static void PlaceClusters(Tilemap props)
+    static void PlaceProps(Tilemap props, List<RectInt> archRects)
     {
-        foreach (var (name, x, y) in Clusters)
+        foreach (var (name, x, y) in PropList)
         {
-            Spawn(props, name, x, y);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PropFolder}/{name}.prefab");
+            if (prefab == null)
+            {
+                Debug.LogWarning("LevelPainter: missing prop " + name);
+                continue;
+            }
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, props.transform);
+            instance.transform.position = new Vector3(x, y, 0f);
         }
     }
 }
