@@ -8,6 +8,9 @@ public sealed class PlayerInputReader : MonoBehaviour
 
     InputActionMap map;
     InputAction moveAction;
+    InputAction attackAction;
+
+    public event System.Action AttackPressed;
 
     public Vector2 Move => moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
 
@@ -29,11 +32,23 @@ public sealed class PlayerInputReader : MonoBehaviour
 
         map = actions.FindActionMap(actionMapName, true);
         moveAction = map.FindAction("Move", true);
+        attackAction = map.FindAction("Attack", true);
+        attackAction.performed += OnAttackPerformed;
         map.Enable();
     }
 
     void OnDisable()
     {
+        if (attackAction != null)
+        {
+            attackAction.performed -= OnAttackPerformed;
+        }
+
         map?.Disable();
+    }
+
+    void OnAttackPerformed(InputAction.CallbackContext context)
+    {
+        AttackPressed?.Invoke();
     }
 }

@@ -16,18 +16,20 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     [SerializeField] Animator animator;
     [SerializeField] SpriteRenderer spriteRenderer;
     [SerializeField] float movingSpeedThreshold = 0.3f;
-    // Art is drawn facing left only; right is the mirrored sprite.
-    [SerializeField] bool mirrorWhenFacingRight = true;
+    // The side clips are drawn facing right; left is the mirrored sprite.
+    [SerializeField] bool mirrorWhenFacingLeft = true;
 
     readonly HashSet<int> parameters = new();
 
     PlayerController2D player;
     DashSkill dash;
+    PlayerInputReader input;
 
     void Awake()
     {
         player = GetComponent<PlayerController2D>();
         dash = GetComponent<DashSkill>();
+        input = GetComponent<PlayerInputReader>();
         if (animator == null)
         {
             animator = GetComponentInChildren<Animator>();
@@ -44,6 +46,11 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnEnable()
     {
         player.Hurt += OnHurt;
+        if (input != null)
+        {
+            input.AttackPressed += PlayAttack;
+        }
+
         if (dash != null)
         {
             dash.Dashed += OnDashed;
@@ -53,6 +60,11 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnDisable()
     {
         player.Hurt -= OnHurt;
+        if (input != null)
+        {
+            input.AttackPressed -= PlayAttack;
+        }
+
         if (dash != null)
         {
             dash.Dashed -= OnDashed;
@@ -66,13 +78,13 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
         SetFloat(MoveYHash, facing.y);
         SetBool(IsMovingHash, player.Velocity.magnitude > movingSpeedThreshold);
 
-        if (spriteRenderer != null && mirrorWhenFacingRight && Mathf.Abs(facing.x) > 0f)
+        if (spriteRenderer != null && mirrorWhenFacingLeft && Mathf.Abs(facing.x) > 0f)
         {
-            spriteRenderer.flipX = facing.x > 0f;
+            spriteRenderer.flipX = facing.x < 0f;
         }
     }
 
-    // Called by the future sword ability.
+    // Fired by the attack input for now; the real weapon skill will call it too.
     public void PlayAttack()
     {
         SetTrigger(AttackHash);
