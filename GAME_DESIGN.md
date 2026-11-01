@@ -40,8 +40,9 @@ Her skill 3 kademelidir. Kademe 2 ve 3 skill puanıyla açılır.
 **Kombolar (iki skill art arda):** Dash + Asa = dönen kesik, Büyü Topu + Dash = iz bırakan top, Bomba + Ok = patlayan ok.
 
 ## Karakter ve sanat
-- Oyuncu: kapüşonlu genç büyücü-savaşçı, elinde kristalli asa (4 yönlü, chibi, pixel-art).
-- Üçüncü taraf sanat (Craftpix ücretsiz paketleri) `Assets/Art/ThirdParty` altında tutulur ve **git'e girmez** (lisans ham dosyaların dağıtımını yasaklıyor, repo public). Yeni bilgisayarda paketler yeniden indirilmelidir.
+- Oyuncu: Craftpix "Mage 1-3 Level Pixel Top Down Sprite Character" (4 yönlü, 64x64 kare, 32 PPU). Üç kademe görünüm (Mage 1/2/3) Asa kademesine göre `PlayerTierSkin` ile değişir; idle, walk, attack, hurt, death pakette var, dash yürüme karelerinden + `DashAfterimage` izinden türetilir. Clip/controller `Tools/Player/Build Mage Animation` ile üretilir.
+- Çevre: Craftpix "2D Top Down Dungeon Tileset" (64 px döşeme, 64 PPU = 1 dünya birimi). Zemin `land.png` 4x4 döşeme, duvar `wall_*` parçaları, props `decor_/stones_/bricks_/greenery_` sprite'ları; `Tools/Level/Dress Level_01 (Dungeon Art)` döşeme, kapı, çıkış ve props'u yeniden üretir.
+- Üçüncü taraf sanat (Craftpix ücretsiz paketleri) `Assets/Art/ThirdParty` altında tutulur ve **git'e girmez** (lisans ham dosyaların dağıtımını yasaklıyor, repo public). Yeni bilgisayarda paketler yeniden indirilmelidir (Mage1-3 ve DungeonTileset zip'leri `Assets/Art/ThirdParty/Craftpix/Mage1-3` ve `.../DungeonTileset` altına açılır; sonra `Tools/Player/Build Mage Animation`, `Tools/Player/Apply Mage To Open Scene` ve `Tools/Level/Dress Level_01 (Dungeon Art)` çalıştırılır, çünkü sahne/tile/prefab referansları paket dosyalarının GUID'lerine bağlıdır). İçe aktarma kuralları `Assets/Editor/CraftpixImporter.cs` içindedir.
 
 ## Skill puanı ve ilerleme
 - Puan kaynakları: düşman öldürme, level bitirme (yıldız sayısına göre), gizli oda.

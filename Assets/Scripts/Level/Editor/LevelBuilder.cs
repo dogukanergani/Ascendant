@@ -7,11 +7,10 @@ using UnityEngine.Tilemaps;
 
 // Builds Assets/Scenes/Level_01.unity (a copy of the PlayerTest setup) from code: top-down tilemaps for five rooms
 // joined by corridors with doors, room controllers with their waves, the boss room, props and the exit.
-// The tile and prop sheets come from Blender (tileset_topdown.png, tileset_props.png); DungeonDressing paints them. Rerunning rebuilds the level objects.
+// The tile and prop art comes from the Craftpix Dungeon Tileset (see DungeonDressing); DungeonDressing paints it. Rerunning rebuilds the level objects.
 public static class LevelBuilder
 {
     const string ScenePath = "Assets/Scenes/Level_01.unity";
-    const string TopDownFolder = "Assets/Art/Environment/TopDown";
     const string BossStatsPath = "Assets/Scripts/Enemies/Data/Orc3BossStats.asset";
     const string BossPrefabPath = "Assets/Prefabs/Enemies/Orc3Boss.prefab";
     const int WallLayer = 11;
@@ -369,7 +368,7 @@ public static class LevelBuilder
 
     static Sprite SpriteAt(int index)
     {
-        return Load<Sprite>($"{TopDownFolder}/tileset_topdown.png", $"tileset_topdown_{index}");
+        return DungeonDressing.TileSprite(index);
     }
 
     static T Load<T>(string path, string subName) where T : Object

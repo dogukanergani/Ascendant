@@ -28,6 +28,11 @@ public class PixelArtImporter : AssetPostprocessor
 
     void OnPreprocessTexture()
     {
+        if (CraftpixImporter.Handles(assetPath))
+        {
+            return;
+        }
+
         if (IsThirdPartyPng(assetPath))
         {
             ApplyThirdPartySettings((TextureImporter)assetImporter);

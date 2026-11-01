@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Drives the Animator on the Visual child. Parameters (all optional, missing ones are skipped silently):
-// MoveX/MoveY (float, facing direction), IsMoving (bool), Attack/Dash/Hurt (trigger).
+// MoveX/MoveY (float, facing direction), IsMoving (bool), Attack/Dash/Hurt/Death (trigger).
 [RequireComponent(typeof(PlayerController2D))]
 public sealed class PlayerAnimationDriver : MonoBehaviour
 {
@@ -12,22 +12,26 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     static readonly int AttackHash = Animator.StringToHash("Attack");
     static readonly int DashHash = Animator.StringToHash("Dash");
     static readonly int HurtHash = Animator.StringToHash("Hurt");
+    static readonly int DeathHash = Animator.StringToHash("Death");
 
     [SerializeField] Animator animator;
     [SerializeField] SpriteRenderer spriteRenderer;
     [SerializeField] float movingSpeedThreshold = 0.3f;
-    // The side clips are drawn facing right; left is the mirrored sprite.
-    [SerializeField] bool mirrorWhenFacingLeft = true;
+    // Only for controllers with a single side clip drawn facing right; the Mage set has both side rows.
+    [SerializeField] bool mirrorWhenFacingLeft;
 
     readonly HashSet<int> parameters = new();
 
     PlayerController2D player;
     DashSkill dash;
+    Health health;
+    bool dead;
 
     void Awake()
     {
         player = GetComponent<PlayerController2D>();
         dash = GetComponent<DashSkill>();
+        health = GetComponent<Health>();
         if (animator == null)
         {
             animator = GetComponentInChildren<Animator>();
@@ -44,6 +48,11 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnEnable()
     {
         player.Hurt += OnHurt;
+        if (health != null)
+        {
+            health.Died += OnDied;
+        }
+
         if (dash != null)
         {
             dash.Dashed += OnDashed;
@@ -53,6 +62,11 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnDisable()
     {
         player.Hurt -= OnHurt;
+        if (health != null)
+        {
+            health.Died -= OnDied;
+        }
+
         if (dash != null)
         {
             dash.Dashed -= OnDashed;
@@ -81,6 +95,13 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnDashed()
     {
         SetTrigger(DashHash);
+    }
+
+    // Death overrides every other state; the controller does not leave it.
+    void OnDied()
+    {
+        dead = true;
+        SetTrigger(DeathHash);
     }
 
     void OnHurt()
@@ -114,6 +135,7 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
 
     void SetTrigger(int hash)
     {
-        if (parameters.Contains(hash)) animator.SetTrigger(hash);
+        // Nothing interrupts the death clip.
+        if (parameters.Contains(hash) && (!dead || hash == DeathHash)) animator.SetTrigger(hash);
     }
 }
