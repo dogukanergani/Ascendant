@@ -1,14 +1,21 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class GrappleSkill : SkillAbility
 {
-    // Only colliders on this mask can be hooked.
-    [SerializeField] LayerMask anchorMask = ~0;
+    // Only colliders on this layer can be hooked.
+    [SerializeField] string anchorLayerName = "GrappleAnchor";
+    // Anything on these layers between the player and an anchor blocks the hook.
+    [SerializeField] LayerMask sightBlockerMask = ~0;
     [SerializeField] float range = 8f;
     [SerializeField] float pullSpeed = 16f;
     [SerializeField] float arriveDistance = 0.6f;
     [SerializeField] float maxDuration = 1.2f;
 
+    readonly List<RaycastHit2D> sightHits = new();
+
+    int anchorMask;
+    ContactFilter2D sightFilter;
     Vector2 anchor;
     float timeLeft;
     bool hooked;
@@ -18,6 +25,22 @@ public sealed class GrappleSkill : SkillAbility
 
     public bool IsHooked => hooked;
 
+    protected override void OnInitialize()
+    {
+        int layer = LayerMask.NameToLayer(anchorLayerName);
+        if (layer < 0)
+        {
+            Debug.LogError($"GrappleSkill: layer '{anchorLayerName}' does not exist, the grapple cannot hook anything.", this);
+            anchorMask = 0;
+        }
+        else
+        {
+            anchorMask = 1 << layer;
+        }
+
+        sightFilter = new ContactFilter2D { useLayerMask = true, layerMask = sightBlockerMask, useTriggers = false };
+    }
+
     void OnDisable()
     {
         hooked = false;
@@ -25,7 +48,7 @@ public sealed class GrappleSkill : SkillAbility
 
     public override bool TryActivate()
     {
-        if (hooked)
+        if (hooked || anchorMask == 0)
         {
             return false;
         }
@@ -37,14 +60,9 @@ public sealed class GrappleSkill : SkillAbility
         Vector2 bestPoint = origin;
         for (int i = 0; i < hits.Length; i++)
         {
-            if (hits[i].attachedRigidbody == Player.Body)
-            {
-                continue;
-            }
-
             Vector2 point = hits[i].ClosestPoint(origin);
             float distance = Vector2.Distance(origin, point);
-            if (distance < bestDistance)
+            if (distance < bestDistance && HasLineOfSight(origin, point, hits[i]))
             {
                 bestDistance = distance;
                 bestPoint = point;
@@ -79,5 +97,22 @@ public sealed class GrappleSkill : SkillAbility
 
         Player.Body.gravityScale = 0f;
         Player.Velocity = toAnchor.normalized * pullSpeed;
+    }
+
+    // The target anchor and the player's own collider never block; any other solid does.
+    bool HasLineOfSight(Vector2 origin, Vector2 point, Collider2D target)
+    {
+        sightHits.Clear();
+        Physics2D.Linecast(origin, point, sightFilter, sightHits);
+        for (int i = 0; i < sightHits.Count; i++)
+        {
+            Collider2D blocker = sightHits[i].collider;
+            if (blocker != target && blocker.attachedRigidbody != Player.Body)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

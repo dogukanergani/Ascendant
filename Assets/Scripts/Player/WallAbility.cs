@@ -34,9 +34,13 @@ public sealed class WallAbility : MonoBehaviour, IPlayerAbility
         }
     }
 
+    // Sliding needs the player to push toward the wall they are touching.
     bool IsSliding()
     {
-        return !player.IsGrounded && player.IsTouchingWall && player.Velocity.y < 0f;
+        return !player.IsGrounded
+            && player.IsTouchingWall
+            && player.Velocity.y < 0f
+            && player.MoveInput * player.WallDirection > 0.01f;
     }
 
     void WallJump()
