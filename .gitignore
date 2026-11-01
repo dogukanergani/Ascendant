@@ -42,3 +42,7 @@ Desktop.ini
 
 # MCP / local tooling
 .mcp.json
+
+# Third-party art (Craftpix free license: raw files must not be redistributed, repo is public)
+/Assets/Art/ThirdParty/
+/Assets/Art/ThirdParty.meta
