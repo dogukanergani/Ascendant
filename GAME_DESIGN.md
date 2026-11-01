@@ -14,11 +14,14 @@ Unity 6 (6000.0.56f1), 2D pixel-art, **top-down aksiyon macera**. Level level il
 - Üstten bakış, kamera oyuncuyu yumuşak takip eder; odalı level'larda oda geçişinde kayar.
 - 8 yönlü hareket, normalize hız (çapraz hızlı değil). Yerçekimi yok.
 - Sprite'lar 4 yönlü (aşağı, yukarı, sol/sağ; sağ = sol ayna).
-- Fizik: Rigidbody2D (gravityScale 0), Collider2D, katmanlar: Player, Enemy, Wall, Hazard, Anchor.
+- Fizik: Rigidbody2D (gravityScale 0), Collider2D, katmanlar: Player, Enemy, Wall, Hazard.
 
 ## Oyuncu
 - Can: kalp sistemi (başlangıç 5 kalp, her kalp 2 parça).
 - Hasar alınca kısa dokunulmazlık ve geri itme.
+- **Stamina (mana):** ayrı bir bar. Dash, Büyü Topu ve diğer aktif skiller stamina harcar; stamina zamanla yavaşça dolar (kısa bir bekleme süresinden sonra). Asa vuruşu stamina harcamaz.
+- Barlar HUD'da: kalpler/can barı ve stamina barı yan yana.
+- **Düşman ödülü:** düşman ölünce şansa bağlı olarak can (kalp parçası) ya da stamina (mavi küre) bırakır. Boss daha çok bırakır. Toplanabilir pickup'lar oyuncuya doğru çekilir.
 - Ölünce son checkpoint'ten devam, topladığı skill puanları kalır.
 
 ## Skiller
@@ -28,13 +31,13 @@ Her skill 3 kademelidir. Kademe 2 ve 3 skill puanıyla açılır.
 |---|---|---|---|---|
 | Asa (büyülü savuruş) | 3 vuruş kombo, geri itme | Geniş savuruş | Dalga atan büyü | Açık |
 | Dash | Kısa atılma, kısa dokunulmazlık | İz bırakır (hasar verir) | Işınlanır (duvardan geçer) | Level 2 boss |
-| Kanca | Anchor'a çeker | Düşmanı çeker/sersemletir | İki anchor arası salınım | Level 3 boss |
+| Büyü Topu | Ateş topu fırlatır | Delici/yanıcı top | Büyü yağmuru | Level 3 boss |
 | Kalkan | Mermiyi engeller | Mermiyi yansıtır | Parry sonrası güçlü vuruş | Level 4 boss |
 | Bomba | Çatlak duvarı yıkar | Alan hasarı | Zincirleme patlama | Level 5 boss |
 | Yay | Uzak şalter/düşman | Delici ok | Ok yağmuru | Level 6 boss |
 | Fener | Karanlığı aydınlatır | Görünmez yolu gösterir | Düşmanı kör eder | Level 7 boss |
 
-**Kombolar (iki skill art arda):** Dash + Asa = dönen kesik, Kanca + Asa = çekip vuruş, Bomba + Ok = patlayan ok.
+**Kombolar (iki skill art arda):** Dash + Asa = dönen kesik, Büyü Topu + Dash = iz bırakan top, Bomba + Ok = patlayan ok.
 
 ## Karakter ve sanat
 - Oyuncu: kapüşonlu genç büyücü-savaşçı, elinde kristalli asa (4 yönlü, chibi, pixel-art).
