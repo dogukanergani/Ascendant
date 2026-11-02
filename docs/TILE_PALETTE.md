@@ -93,3 +93,12 @@ Koridor: duvardan 2 hücrelik zemin aç. Yan duvardan geçen koridorun üstü 4 
 Props: üst duvara simetrik 2 meşale (`Torch`, kapının iki yanında), köşelere 2-4 parça (fıçı/kasa/sandık), kapı ve koridor ağızlarını boş bırak. Boss odası aynı şablon, `*_boss` (kırmızı) tile'lar, sancak ve altın yığını.
 
 Menü komutu `Ground/Decor/Walls/WallTop/Backdrop/Props` içeriğini **siler** ve baştan boyar; elle değişiklik yaptıktan sonra çalıştırma. Oda/koridor rect'leri ve prop listesi `LevelPainter.cs` başında. `Tools/Level/Render Level_01 Shots` Edit modunda `Assets/Screenshots/lvl_*.png` ve `game_*.png` render'larını üretir.
+
+## 11. Pixel Dungeon paketi (yeni görünüm)
+
+Level_01 artık Craftpix "Free 2D Top-Down Pixel Dungeon" paketiyle boyalı (`Tools/Level/Paint Level_01 (PixelDungeon)`, `PixelDungeonPainter.cs`). Eski görünüm sahnede `Grid` nesnesi olarak **kapalı** duruyor; geri dönmek için `Grid`'i açıp `Grid_PixelDungeon`'ı kapat (kamera arka planını da eski koyu renge çek).
+
+* **Ölçek:** paket 16 px tile. Tile'lar 32 PPU ile içe aktarılıyor (karakterlerle aynı piksel yoğunluğu), yani 1 tile = 0,5 birim. Bu yüzden ayrı bir Grid var (`Grid_PixelDungeon`, hücre 0,5). Oda, kapı, kamera ve spawn dünya birimleri değişmedi.
+* **Katmanlar** (`Grid_PixelDungeon` altında): `PD_Ground` (zemin), `PD_FloorShade`, `PD_Decor` (çatlak), `PD_Walls` (kaya kütlesi ve duvar yüzü, collider yok), `PD_Props` (fıçı, kasa, meşale; Y'ye göre sıralanır), `PD_Collision` (görünmez, Wall katmanı, collider). **Elle boyarken duvar boyadığın yere `PD_Collision`'a da `PD_Collision` tile'ı koy**, yoksa oyuncu içinden geçer.
+* **Duvar mantığı:** zemin olmayan her şey koyu kaya (`walls_floor` 36). Kenarında taş çizgi var. Zeminin hemen üstünde 3 satır tuğla yüz: 23 (çizgi + tuğla), 40, 57. Yanlarda 35/37 kenarlar, alt kenarda 74, iç köşelerde 73/75, koridor ağzında tuğla uçları 52/69/86 ve 54/71/88.
+* **Palette'ler:** `PixelDungeon_Walls`, `PixelDungeon_Ground`, `PixelDungeon_Decor`, `PixelDungeon_Props`. Paket sayfaları PNG'deki düzeniyle yerleştirildi; çok hücreli parçaları (kapı, meşale, fıçı) Select ile blok seçip damgala. Yeniden kurmak için `Tools/Level/Build PixelDungeon Palettes`.

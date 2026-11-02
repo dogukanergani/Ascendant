@@ -7,22 +7,29 @@ using UnityEngine;
 // Import rules for the Craftpix Mage 1-3 and Dungeon Tileset packs (Assets/Art/ThirdParty, gitignored).
 // Mage sheets: 64x64 cells, 4 direction rows (down, left, right, up), 32 PPU like the orcs, feet pivot.
 // Dungeon art: 64 PPU so one 64 px tile is one world unit; wall/land sheets are sliced into 64x64 cells.
+// Pixel Dungeon pack: 16 px tiles at 32 PPU (the characters' pixel density), so one tile is half a world unit; every
+// sheet is sliced into 16x16 cells named <file>_<index>, the same order as the pack's Tiled tilesets.
 public class CraftpixImporter : AssetPostprocessor
 {
     public const string MageFolder = "Assets/Art/ThirdParty/Craftpix/Mage1-3/";
     public const string DungeonFolder = "Assets/Art/ThirdParty/Craftpix/DungeonTileset/";
     public const string DungeonGeneratedFolder = DungeonFolder + "Generated/";
+    public const string PixelDungeonFolder = "Assets/Art/ThirdParty/Craftpix/PixelDungeon/";
 
     const int MagePpu = 32;
     const int DungeonPpu = 64;
     const int Cell = 64;
+    public const int PixelDungeonPpu = 32;
+    const int PixelDungeonCell = 16;
     // Feet sit about 12 px above the cell bottom; the pivot lets the sprite stand on the Visual origin.
     public static readonly Vector2 MagePivot = new(0.5f, 0.19f);
 
     public static bool Handles(string path)
     {
-        return IsMageSheet(path) || IsDungeon(path);
+        return IsMageSheet(path) || IsDungeon(path) || IsPixelDungeon(path);
     }
+
+    static bool IsPixelDungeon(string path) => path.StartsWith(PixelDungeonFolder) && IsPng(path);
 
     static bool IsPng(string path) => path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
 
@@ -63,6 +70,12 @@ public class CraftpixImporter : AssetPostprocessor
             settings.spriteMode = (int)SpriteImportMode.Multiple;
             settings.spritePixelsPerUnit = MagePpu;
         }
+        else if (IsPixelDungeon(assetPath))
+        {
+            settings.spriteMode = (int)SpriteImportMode.Multiple;
+            settings.spritePixelsPerUnit = PixelDungeonPpu;
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+        }
         else
         {
             bool sliced = IsSlicedDungeonSheet(assetPath);
@@ -89,10 +102,14 @@ public class CraftpixImporter : AssetPostprocessor
             {
                 SliceGrid(path, new Vector2(0.5f, 0.5f), SpriteAlignment.Center);
             }
+            else if (IsPixelDungeon(path))
+            {
+                SliceGrid(path, new Vector2(0.5f, 0.5f), SpriteAlignment.Center, PixelDungeonCell);
+            }
         }
     }
 
-    static void SliceGrid(string path, Vector2 pivot, SpriteAlignment alignment)
+    static void SliceGrid(string path, Vector2 pivot, SpriteAlignment alignment, int cell = Cell)
     {
         var importer = AssetImporter.GetAtPath(path) as TextureImporter;
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
@@ -102,9 +119,9 @@ public class CraftpixImporter : AssetPostprocessor
         }
 
         string fileName = Path.GetFileNameWithoutExtension(path);
-        int columns = texture.width / Cell;
-        int rows = texture.height / Cell;
-        if (columns == 0 || rows == 0 || texture.width % Cell != 0 || texture.height % Cell != 0)
+        int columns = texture.width / cell;
+        int rows = texture.height / cell;
+        if (columns == 0 || rows == 0 || texture.width % cell != 0 || texture.height % cell != 0)
         {
             return;
         }
@@ -118,7 +135,7 @@ public class CraftpixImporter : AssetPostprocessor
                 wanted.Add(new SpriteRect
                 {
                     name = $"{fileName}_{index}",
-                    rect = new Rect(col * Cell, texture.height - (row + 1) * Cell, Cell, Cell),
+                    rect = new Rect(col * cell, texture.height - (row + 1) * cell, cell, cell),
                     alignment = alignment,
                     pivot = pivot,
                     spriteID = GUID.Generate(),

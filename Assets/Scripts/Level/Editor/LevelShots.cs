@@ -47,7 +47,7 @@ public static class LevelShots
         cam.orthographicSize = halfH;
         cam.transform.position = new Vector3(x, y, -10f);
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.04f, 0.035f, 0.07f);
+        cam.backgroundColor = Camera.main != null ? Camera.main.backgroundColor : new Color(0.04f, 0.035f, 0.07f);
         var rt = new RenderTexture(w, h, 24);
         cam.targetTexture = rt;
         cam.Render();
