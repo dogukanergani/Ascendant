@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Swaps the player's animation set when the staff skill changes tier (Mage 1-3 look). Each tier entry is an
+// Swaps the player's animation set (and optionally the held staff) when the staff skill changes tier. Each tier entry is an
 // override of the base controller; a missing entry falls back to the nearest lower tier, or the base controller.
 [RequireComponent(typeof(PlayerAnimationDriver))]
 public sealed class PlayerTierSkin : MonoBehaviour
@@ -9,6 +9,9 @@ public sealed class PlayerTierSkin : MonoBehaviour
     [SerializeField] Animator animator;
     // Index 0 = tier 1 ... index 2 = tier 3.
     [SerializeField] RuntimeAnimatorController[] tierControllers = new RuntimeAnimatorController[SkillManager.MaxTier];
+    // Optional staff look per tier (same fallback rule).
+    [SerializeField] SpriteRenderer staff;
+    [SerializeField] Sprite[] tierStaffSprites = new Sprite[SkillManager.MaxTier];
 
     SkillManager manager;
 
@@ -50,6 +53,18 @@ public sealed class PlayerTierSkin : MonoBehaviour
 
     void Apply(int tier)
     {
+        if (staff != null)
+        {
+            for (int i = Mathf.Min(tier, tierStaffSprites.Length) - 1; i >= 0; i--)
+            {
+                if (tierStaffSprites[i] != null)
+                {
+                    staff.sprite = tierStaffSprites[i];
+                    break;
+                }
+            }
+        }
+
         if (animator == null)
         {
             return;

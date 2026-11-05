@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +21,12 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     [SerializeField] float movingSpeedThreshold = 0.3f;
     // Only for controllers with a single side clip drawn facing right; the Mage set has both side rows.
     [SerializeField] bool mirrorWhenFacingLeft;
+    // Red tint on the body when hurt (the DungeonTileset II hit frame is a single pose).
+    [SerializeField] Color hurtTint = new(1f, 0.35f, 0.35f, 1f);
+    [SerializeField] float hurtTintTime = 0.18f;
+
+    // Raised with every staff swing, for visuals that are not part of the Animator (the held staff).
+    public event Action AttackPlayed;
 
     readonly HashSet<int> parameters = new();
 
@@ -90,6 +98,7 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     public void PlayAttack()
     {
         SetTrigger(AttackHash);
+        if (!dead) AttackPlayed?.Invoke();
     }
 
     void OnDashed()
@@ -107,6 +116,22 @@ public sealed class PlayerAnimationDriver : MonoBehaviour
     void OnHurt()
     {
         SetTrigger(HurtHash);
+        if (spriteRenderer != null && hurtTintTime > 0f && isActiveAndEnabled)
+        {
+            StopCoroutine(nameof(HurtTint));
+            StartCoroutine(nameof(HurtTint));
+        }
+    }
+
+    IEnumerator HurtTint()
+    {
+        for (float t = 0f; t < hurtTintTime; t += Time.deltaTime)
+        {
+            spriteRenderer.color = Color.Lerp(hurtTint, Color.white, t / hurtTintTime);
+            yield return null;
+        }
+
+        spriteRenderer.color = Color.white;
     }
 
     void CacheParameters()

@@ -109,7 +109,8 @@ public class PixelArtImporter : AssetPostprocessor
 
     static bool IsArtPng(string path)
     {
-        return path.StartsWith(ArtFolder) && !path.StartsWith(ThirdPartyFolder) && path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
+        return path.StartsWith(ArtFolder) && !path.StartsWith(ThirdPartyFolder) && !path.StartsWith(DungeonTilesetIIImporter.Folder)
+            && path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
     }
 
     static bool IsSheetName(string fileName)

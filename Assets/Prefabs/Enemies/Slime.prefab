@@ -78,7 +78,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.75, y: 0.4}
+  m_Size: {x: 0.7, y: 0.4}
   m_EdgeRadius: 0
 --- !u!50 &3141346480700292041
 Rigidbody2D:
@@ -119,6 +119,7 @@ GameObject:
   - component: {fileID: 8860878376075632040}
   - component: {fileID: 1796144600819278941}
   - component: {fileID: 4223623016393906407}
+  - component: {fileID: 5229057914773919603}
   m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
@@ -134,7 +135,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1888239678666252287}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.25881907, y: -0, z: -0, w: 0.9659259}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -184,8 +185,8 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
-  m_Sprite: {fileID: 5463189583543264802, guid: 6fe8c3a25cf31f746be04a68c2534c43, type: 3}
+  m_SortingOrder: 10
+  m_Sprite: {fileID: 21300000, guid: b81918c95494d104b91801d25d3fe0be, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -206,7 +207,7 @@ Animator:
   m_GameObject: {fileID: 1888239678666252287}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: fceba367ef2ede34e8138759193dcbe5, type: 2}
+  m_Controller: {fileID: 9100000, guid: 1f4f1423f221c2e4094897c69b374bea, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -230,3 +231,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d24af999f15fe543ae18d1f3888c36b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &5229057914773919603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1888239678666252287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89868b545c89f144a9ea82285baddb68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  deadZone: 0.05
