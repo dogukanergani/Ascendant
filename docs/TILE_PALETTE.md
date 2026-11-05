@@ -102,3 +102,18 @@ Level_01 artık Craftpix "Free 2D Top-Down Pixel Dungeon" paketiyle boyalı (`To
 * **Katmanlar** (`Grid_PixelDungeon` altında): `PD_Ground` (zemin), `PD_FloorShade`, `PD_Decor` (çatlak), `PD_Walls` (kaya kütlesi ve duvar yüzü, collider yok), `PD_Props` (fıçı, kasa, meşale; Y'ye göre sıralanır), `PD_Collision` (görünmez, Wall katmanı, collider). **Elle boyarken duvar boyadığın yere `PD_Collision`'a da `PD_Collision` tile'ı koy**, yoksa oyuncu içinden geçer.
 * **Duvar mantığı:** zemin olmayan her şey koyu kaya (`walls_floor` 36). Kenarında taş çizgi var. Zeminin hemen üstünde 3 satır tuğla yüz: 23 (çizgi + tuğla), 40, 57. Yanlarda 35/37 kenarlar, alt kenarda 74, iç köşelerde 73/75, koridor ağzında tuğla uçları 52/69/86 ve 54/71/88.
 * **Palette'ler:** `PixelDungeon_Walls`, `PixelDungeon_Ground`, `PixelDungeon_Decor`, `PixelDungeon_Props`. Paket sayfaları PNG'deki düzeniyle yerleştirildi; çok hücreli parçaları (kapı, meşale, fıçı) Select ile blok seçip damgala. Yeniden kurmak için `Tools/Level/Build PixelDungeon Palettes`.
+
+## 12. DungeonTileset II (güncel görünüm)
+
+Level_01 artık yalnızca 0x72 DungeonTileset II ile boyalı (`Tools/Level/Paint Level_01 (DTS2)`, `Dts2LevelPainter.cs`). 16 px = 1 birim, hücre 1 birim (`Grid_DTS2`). Eski `Grid` ve `Grid_PixelDungeon` sahnede kapalı yedek.
+
+* **Katmanlar:** `DTS2_Ground` (zemin), `DTS2_Decor`, `DTS2_Walls` (duvarlar, collider yok), `DTS2_WallFront` (oyuncunun önünde çizilecek parçalar için, sıra 20), `DTS2_Props` (prefab'lar), `DTS2_Collision` (görünmez, Wall katmanı). Elle duvar boyarken `DTS2_Collision`'a da `DTS2_Collision` tile'ı koy.
+* **Duvar şablonu (paketin mantığı):** duvar 1 hücre kalın.
+  * Üst duvar: zeminin üstünde `wall_mid` (tuğla yüz), onun üstünde `wall_top_mid` (taş kapak); köşeler `wall_top_left/right`, yanları `wall_edge_mid_left/right`.
+  * Yan duvarlar: `wall_edge_mid_left/right` (kapak çizgisi dış tarafta).
+  * Alt duvar: zeminin altında `wall_top_mid`, onun altında `wall_mid`; köşeler `wall_edge_bottom_left/right`, uçlar `wall_left/right`.
+* **Zemin:** çoğunlukla `floor_1`, arada `floor_2..8` (boss odasında daha sık, kırmızı ton).
+* **Süs:** `wall_banner_*` ve `wall_goo` tuğla yüzün yerine; çeşme 3 parça (kapakta `wall_fountain_top_1`, yüzde ve önündeki zeminde animasyonlu prefab).
+* **Props:** `Assets/Prefabs/Environment/DTS2` (Crate, Column, Chest, ChestEmpty, Skull, Spikes, çeşme parçaları; katı olanların collider'ı ayakta).
+* **Palette'ler:** `DTS2_Ground`, `DTS2_Walls`, `DTS2_Decor`, `DTS2_Props` (`Tools/Level/Build DTS2 Palettes`).
+* **Kapılar:** `Door_*` nesneleri `doors_leaf_closed/open` gösteriyor. Yan kapılar için pakette yan görünüş olmadığından ön kapı daraltılmış hâlde kullanılıyor.
